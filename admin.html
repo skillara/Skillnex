@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 11: அட்மின் பேனல் (Payouts)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #333; padding: 1rem 2rem; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #fff; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        h2 { border-bottom: 2px solid #ddd; padding-bottom: 0.5rem; }
+        
+        #access-denied { background: #fff; padding: 2rem; border-radius: 8px; text-align: center; border: 2px solid #dc3545; color: #dc3545; }
+        
+        /* ஆர்டர் கார்டு ஸ்டைல் */
+        .order-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 1.5rem;
+            display: flex;
+            overflow: hidden;
+        }
+        .order-details { padding: 1.5rem; flex-grow: 1; }
+        .order-details p { margin: 0.5rem 0; word-break: break-word; }
+        .order-details strong { color: #333; }
+        
+        /* Screenshot ஸ்டைல் (Pending) */
+        .order-proof {
+            width: 300px; background-color: #f9f9f9; padding: 1rem;
+            text-align: center; border-left: 1px solid #eee; flex-shrink: 0;
+        }
+        .order-proof img { width: 100%; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; }
+
+        /* !! புதிய Payout ஸ்டைல் (Completed) !! */
+        .order-payout {
+            width: 300px; background-color: #e6f9f0; padding: 1.5rem;
+            border-left: 1px solid #d4edda; flex-shrink: 0;
+        }
+        .order-payout h4 { margin-top: 0; }
+        .payout-details {
+            background-color: #fff;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            white-space: pre-wrap; /* வங்கி விவரங்களைச் சரியாகக் காட்ட */
+            word-wrap: break-word;
+            border: 1px solid #ccc;
+        }
+        .payout-loading { font-style: italic; color: #555; }
+
+        /* பட்டன்கள் */
+        .action-btn {
+            width: 100%; padding: 0.75rem; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: 700; margin-top: 1rem;
+        }
+        .approve-btn { background-color: #28a745; } /* பச்சை */
+        .approve-btn:hover { background-color: #218838; }
+        .paid-btn { background-color: #007bff; } /* நீலம் */
+        .paid-btn:hover { background-color: #0056b3; }
+        .action-btn:disabled { background-color: #ccc; }
+
+        @media (max-width: 768px) {
+            .order-card { flex-direction: column; }
+            .order-proof { width: auto; border-left: none; border-top: 1px solid #eee; }
+            .order-payout { width: auto; border-left: none; border-top: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex - அட்மின் பேனல் (Full)</div>
+    </header>
+
+    <main class="container">
+        
+        <div id="access-denied" style="display: none;">
+            <h2>தடைசெய்யப்பட்ட அணுகல்!</h2>
+            <p>சரியான அட்மின் கணக்கு மூலம் <a href="login.html">லாகின் செய்யவும்</a>.</p>
+        </div>
+        
+        <div id="admin-content" style="display: none;">
+            
+            <section id="completed-section">
+                <h2>✅ முடிக்கப்பட்டவை (Completed - Payout)</h2>
+                <div id="completed-orders-container">
+                    <p id="loading-completed">முடிக்கப்பட்ட ஆர்டர்களைப் பதிவேற்றுகிறது...</p>
+                </div>
+            </section>
+            
+            <hr style="border: 0; border-top: 2px solid #ccc; margin: 3rem 0;">
+
+            <section id="pending-section">
+                <h2>🕒 காத்திருப்பவை (Pending Confirmation)</h2>
+                <div id="pending-orders-container">
+                    <p id="loading-pending">காத்திருக்கும் ஆர்டர்களைப் பதிவேற்றுகிறது...</p>
+                </div>
+            </section>
+            
+            <section id="inprogress-section">
+                <h2>🚀 வேலையில் உள்ளவை (In Progress)</h2>
+                <div id="inprogress-orders-container">
+                    <p id="loading-inprogress">வேலையில் உள்ள ஆர்டர்களைப் பதிவேற்றுகிறது...</p>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, doc, updateDoc, getDoc, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // ===============================================
+        // !! உங்கள் உண்மையான அட்மின் UID !!
+        // ===============================================
+        const ADMIN_UID = "Pe0tricsPVUvMweWVYMfPQTkeem1";
+        // ===============================================
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const accessDeniedDiv = document.getElementById('access-denied');
+        const adminContentDiv = document.getElementById('admin-content');
+        
+        const completedContainer = document.getElementById('completed-orders-container');
+        const pendingContainer = document.getElementById('pending-orders-container');
+        const inProgressContainer = document.getElementById('inprogress-orders-container');
+        
+        const loadingCompletedP = document.getElementById('loading-completed');
+        const loadingPendingP = document.getElementById('loading-pending');
+        const loadingInProgressP = document.getElementById('loading-inprogress');
+
+        // --- 1. அட்மின் சோதித்தல் ---
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.uid === ADMIN_UID) {
+                accessDeniedDiv.style.display = 'none';
+                adminContentDiv.style.display = 'block';
+                // எல்லா ஆர்டர்களையும் பெறவும்
+                fetchAllOrders();
+            } else {
+                accessDeniedDiv.style.display = 'block';
+                adminContentDiv.style.display = 'none';
+            }
+        });
+
+        // --- 2. எல்லா ஆர்டர்களையும் பெறும் செயல்பாடு ---
+        function fetchAllOrders() {
+            // !! புதியது: Completed Orders (படி 11) !!
+            fetchOrdersByStatus("completed", completedContainer, loadingCompletedP);
+            // பழையது (படி 6)
+            fetchOrdersByStatus("pending_confirmation", pendingContainer, loadingPendingP);
+            fetchOrdersByStatus("in_progress", inProgressContainer, loadingInProgressP);
+        }
+
+        async function fetchOrdersByStatus(status, container, loadingElement) {
+            try {
+                const q = query(collection(db, "orders"), 
+                                where("status", "==", status),
+                                orderBy("createdAt", "desc"));
+                
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    loadingElement.innerText = `இந்த நிலையில் ('${status}') ஆர்டர்கள் எதுவும் இல்லை.`;
+                    return;
+                }
+
+                loadingElement.style.display = 'none';
+                container.innerHTML = '';
+
+                querySnapshot.forEach((docSnap) => {
+                    const orderData = docSnap.data();
+                    const orderId = docSnap.id;
+                    
+                    const orderCard = document.createElement('div');
+                    orderCard.className = 'order-card';
+                    orderCard.id = `order-${orderId}`;
+
+                    let actionHtml = ''; // வலது பக்கப் பகுதி
+
+                    // ஸ்டேட்டஸ்-க்கு ஏற்ப வலது பக்கப் பகுதியையும், பட்டனையும் மாற்று
+                    
+                    if (status === 'pending_confirmation') {
+                        // படி 6: Screenshot-ஐயும், Approve பட்டனையும் காட்டு
+                        actionHtml = `
+                        <div class="order-proof">
+                            <p>Payment Screenshot:</p>
+                            <a href="${orderData.paymentProofURL}" target="_blank">
+                                <img src="${orderData.paymentProofURL}" alt="Payment Proof">
+                            </a>
+                            <button class="action-btn approve-btn" data-id="${orderId}">Approve செய்</button>
+                        </div>
+                        `;
+                    } 
+                    else if (status === 'in_progress') {
+                        // வேலையில் உள்ளது, காட்ட எதுவும் இல்லை
+                        actionHtml = `<div class="order-proof" style="background: #e2f0ff;"><p>வேலை நடக்கிறது...</p></div>`;
+                    }
+                    else if (status === 'completed') {
+                        // படி 11: Payout விவரங்களையும், "Paid" பட்டனையும் காட்டு
+                        actionHtml = `
+                        <div class="order-payout">
+                            <h4>Seller-க்கு பணம் அனுப்பு</h4>
+                            <div class="payout-details payout-loading" id="payout-${orderId}">
+                                Seller-இன் வங்கி விவரங்கள் லோட் ஆகிறது...
+                            </div>
+                            <button class="action-btn paid-btn" data-id="${orderId}" data-price="${orderData.price}">பணம் அனுப்பிவிட்டேன் (Mark as Paid)</button>
+                        </div>
+                        `;
+                        // !! முக்கியம்: வங்கி விவரங்களை தனியாக லோட் செய் !!
+                        fetchPayoutDetails(orderData.sellerId, `payout-${orderId}`);
+                    }
+
+                    // ஆர்டரின் இடது பக்கப் பகுதி (எல்லாவற்றிற்கும் பொதுவானது)
+                    orderCard.innerHTML = `
+                        <div class="order-details">
+                            <p><strong>Gig:</strong> ${orderData.gigTitle}</p>
+                            <p><strong>விலை:</strong> $${orderData.price}</p>
+                            <p><strong>Buyer:</strong> ${orderData.buyerEmail}</p>
+                            <p><strong>Seller ID:</strong> ${orderData.sellerId}</p>
+                            <p><strong>Order ID:</strong> <code>${orderId}</code></p>
+                        </div>
+                        ${actionHtml}
+                    `;
+
+                    container.appendChild(orderCard);
+                });
+
+                // எல்லா பட்டன்களுக்கும் Event Listeners-ஐ இணை
+                addListeners();
+
+            } catch (error) {
+                console.error(`Error fetching ${status} orders:`, error);
+                loadingElement.innerText = "ஆர்டர்களைப் பெறுவதில் பிழை ஏற்பட்டது.";
+            }
+        }
+
+        // --- 3. Seller-இன் வங்கி விவரங்களைப் பெறும் செயல்பாடு (படி 10.5-ல் இருந்து) ---
+        async function fetchPayoutDetails(sellerId, elementId) {
+            const payoutElement = document.getElementById(elementId);
+            if (!payoutElement) return;
+
+            try {
+                const userRef = doc(db, "users", sellerId);
+                const userSnap = await getDoc(userRef);
+
+                if (userSnap.exists()) {
+                    const userData = userSnap.data();
+                    if (userData.payoutDetails) {
+                        payoutElement.innerText = userData.payoutDetails; // வங்கி விவரங்களைக் காட்டு
+                        payoutElement.classList.remove('payout-loading');
+                    } else {
+                        payoutElement.innerText = "Seller இன்னும் வங்கி விவரங்களைப் பதியவில்லை!";
+                        payoutElement.style.color = 'red';
+                    }
+                } else {
+                    payoutElement.innerText = "Seller-இன் சுயவிவரம் (Profile) இல்லை!";
+                }
+            } catch (error) {
+                console.error("Error fetching payout details:", error);
+                payoutElement.innerText = "வங்கி விவரங்களைப் பெறுவதில் பிழை.";
+            }
+        }
+
+        // --- 4. பட்டன்களுக்கான Listeners ---
+        function addListeners() {
+            // Approve பட்டன்கள்
+            document.querySelectorAll('.approve-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const orderId = button.getAttribute('data-id');
+                    updateOrderStatus(orderId, 'in_progress', button, "Approve செய்");
+                });
+            });
+
+            // Paid பட்டன்கள்
+            document.querySelectorAll('.paid-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const orderId = button.getAttribute('data-id');
+                    const price = button.getAttribute('data-price');
+                    
+                    // உங்கள் கமிஷனைக் கணக்கிடுங்கள் (உதாரணம் 20%)
+                    const commission = price * 0.20;
+                    const payout = price - commission;
+                    
+                    if (confirm(`ஆர்டர்: ${orderId}\nமொத்த விலை: $${price}\nஉங்கள் கமிஷன் (20%): $${commission}\nSeller-க்கு அனுப்பவும்: $${payout}\n\nநீங்கள் $${payout} தொகையை Seller-க்கு அனுப்பிவிட்டீர்களா?`)) {
+                        updateOrderStatus(orderId, 'paid', button, "பணம் அனுப்பிவிட்டேன்");
+                    }
+                });
+            });
+        }
+
+        // --- 5. ஆர்டர் ஸ்டேட்டஸ்-ஐ அப்டேட் செய்யும் பொதுவான செயல்பாடு ---
+        async function updateOrderStatus(orderId, newStatus, button, originalText) {
+            button.disabled = true;
+            button.innerText = "அப்டேட் செய்கிறது...";
+
+            try {
+                const orderRef = doc(db, "orders", orderId);
+                await updateDoc(orderRef, {
+                    status: newStatus
+                });
+
+                alert(`வெற்றி! ஆர்டர் நிலை "${newStatus}" ஆக மாற்றப்பட்டது.`);
+                
+                const cardToRemove = document.getElementById(`order-${orderId}`);
+                if (cardToRemove) { cardToRemove.remove(); }
+                
+                // பக்கத்தை Reload செய் (புதிய பட்டியலைப் பார்க்க)
+                // location.reload(); // இது எளிதான வழி, ஆனால் தேவையென்றால் மட்டும்.
+                
+            } catch (error) {
+                console.error("Error updating order:", error);
+                alert("ஆர்டரை அப்டேட் செய்வதில் பிழை!");
+                button.disabled = false;
+                button.innerText = originalText;
+            }
+        }
+
+    </script>
+</body>
+</html>

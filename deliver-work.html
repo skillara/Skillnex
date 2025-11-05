@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 9: வேலையை டெலிவரி செய்</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .container { max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; }
+        
+        /* ஆர்டர் விவரங்கள் */
+        .order-summary { border: 1px solid #ddd; border-radius: 8px; margin-bottom: 1.5rem; padding: 1rem; background: #f9f9f9; }
+        .order-summary h3 { margin-top: 0; }
+
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        textarea {
+            width: 100%; min-height: 80px; padding: 0.5rem; box-sizing: border-box;
+            border: 1px solid #ddd; border-radius: 4px;
+        }
+        input[type="file"] {
+            border: 1px solid #ddd; padding: 0.5rem; border-radius: 4px; width: 100%; box-sizing: border-box;
+        }
+        
+        button {
+            width: 100%; padding: 1rem; background-color: #28a745; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 1.2rem; font-weight: 700; margin-top: 1rem;
+        }
+        button:hover { background-color: #218838; }
+        button:disabled { background-color: #ccc; }
+
+        #loading { text-align: center; font-size: 1.2rem; color: #777; }
+        #security-check-failed { display: none; color: #dc3545; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex - வேலையை டெலிவரி செய்</div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            
+            <p id="loading">ஆர்டர் விவரங்களைப் பதிவேற்றுகிறது...</p>
+
+            <div id="security-check-failed">
+                <h2>தடை!</h2>
+                <p>இந்த ஆர்டரை டெலிவரி செய்ய உங்களுக்கு அனுமதி இல்லை. நீங்கள் இந்த ஆர்டரின் Seller ஆக <a href="login.html">லாகின்</a> செய்திருக்க வேண்டும்.</p>
+            </div>
+
+            <div id="delivery-form" style="display: none;">
+                <div class="order-summary">
+                    <h3>ஆர்டரை டெலிவரி செய்:</h3>
+                    <p id="gig-title"><strong>Gig Title Loading...</strong></p>
+                </div>
+
+                <h2>1. Buyer-க்கு ஒரு செய்தியை அனுப்பவும்</h2>
+                <div class="form-group">
+                    <label for="delivery-message">செய்தி (Message)</label>
+                    <textarea id="delivery-message" placeholder="இதோ உங்கள் வேலை! உங்கள் ரிவ்யூ-க்காக காத்திருக்கிறேன்..."></textarea>
+                </div>
+
+                <h2>2. முடிக்கப்பட்ட வேலையைப் பதிவேற்று</h2>
+                <div class="form-group">
+                    <label for="delivery-file">ஃபைலைத் தேர்ந்தெடுக்கவும் (Select File)</label>
+                    <input type="file" id="delivery-file">
+                </div>
+                
+                <div id="upload-progress"></div>
+                <button id="confirm-delivery-btn">வேலையை அனுப்பி, ஆர்டரை முடி</button>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // ===============================================
+        // !! உங்கள் Cloudinary விவரங்கள் !!
+        // ===============================================
+        const CLOUDINARY_CLOUD_NAME = "dfafurpn";
+        const CLOUDINARY_UPLOAD_PRESET = "skillnex"; // அதே Preset-ஐயே பயன்படுத்துகிறோம்
+        const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`; // 'auto' upload
+        // ===============================================
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loadingP = document.getElementById('loading');
+        const securityCheckFailedDiv = document.getElementById('security-check-failed');
+        const deliveryFormDiv = document.getElementById('delivery-form');
+        const gigTitleEl = document.getElementById('gig-title');
+        const messageInput = document.getElementById('delivery-message');
+        const fileInput = document.getElementById('delivery-file');
+        const confirmBtn = document.getElementById('confirm-delivery-btn');
+        const progressEl = document.getElementById('upload-progress');
+
+        let orderData = null;
+        let orderId = null;
+        let currentUser = null;
+
+        // --- 1. Order ID-ஐப் பெறுதல் மற்றும் லாகின் சோதித்தல் ---
+        async function initializePage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            orderId = urlParams.get('orderId');
+
+            if (!orderId) {
+                loadingP.innerText = "பிழை: Order ID கிடைக்கவில்லை.";
+                securityCheckFailedDiv.style.display = 'block';
+                return;
+            }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await checkSecurityAndFetchOrder(); // பாதுகாப்புச் சோதனையைச் செய்
+                } else {
+                    loadingP.style.display = 'none';
+                    securityCheckFailedDiv.style.display = 'block';
+                }
+            });
+        }
+
+        // --- 2. பாதுகாப்புச் சோதனை மற்றும் ஆர்டர் விவரங்களைப் பெறுதல் ---
+        async function checkSecurityAndFetchOrder() {
+            try {
+                const docRef = doc(db, "orders", orderId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    orderData = docSnap.data();
+                    
+                    // !! மிக முக்கியமான பாதுகாப்புச் சோதனை !!
+                    // லாகின் செய்த யூசர் தான் இந்த ஆர்டரின் Seller-ஆ?
+                    if (orderData.sellerId === currentUser.uid) {
+                        // ஆம், இவர் தான் Seller.
+                        gigTitleEl.innerText = orderData.gigTitle;
+                        loadingP.style.display = 'none';
+                        deliveryFormDiv.style.display = 'block';
+                    } else {
+                        // இல்லை, இவர் Seller இல்லை!
+                        throw new Error("User is not the seller for this order.");
+                    }
+                } else {
+                    throw new Error("Order not found.");
+                }
+            } catch (error) {
+                console.error("Security check failed:", error);
+                loadingP.style.display = 'none';
+                securityCheckFailedDiv.style.display = 'block';
+            }
+        }
+
+        // --- 3. வேலையை டெலிவரி செய்யும் செயல்பாடு ---
+        async function handleConfirmDelivery() {
+            const file = fileInput.files[0];
+            const message = messageInput.value;
+
+            if (!file) {
+                alert("முடிக்கப்பட்ட வேலைக்கான ஃபைலைத் தேர்ந்தெடுக்கவும்!");
+                return;
+            }
+            if (!message) {
+                alert("Buyer-க்கு ஒரு செய்தி டைப் செய்யவும்.");
+                return;
+            }
+
+            confirmBtn.disabled = true;
+            confirmBtn.innerText = "ஃபைல் பதிவேற்றுகிறது...";
+            progressEl.innerText = "பதிவேற்றத் தயாராகிறது...";
+
+            // --- படி 3a: Cloudinary-க்கு ஃபைலை பதிவேற்றுதல் ---
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+
+            try {
+                const response = await fetch(CLOUDINARY_UPLOAD_URL, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) { throw new Error('Cloudinary upload failed'); }
+
+                const data = await response.json();
+                const downloadURL = data.secure_url; // இதுதான் டெலிவரி ஃபைலின் லிங்க்
+                const publicId = data.public_id; // ஃபைல் வகை போன்றவற்றை அறிய
+
+                progressEl.innerText = "ஃபைல் பதிவேற்றியது! ஆர்டரை அப்டேட் செய்கிறது...";
+
+                // --- படி 3b: Firestore-ல் ஆர்டரை அப்டேட் செய்தல் ---
+                const orderRef = doc(db, "orders", orderId);
+                await updateDoc(orderRef, {
+                    status: "delivered", // !! ஸ்டேட்டஸ் "delivered" ஆக மாறியது !!
+                    delivery: {
+                        message: message,
+                        fileURL: downloadURL,
+                        fileName: file.name,
+                        fileType: data.resource_type, // 'image', 'video', 'raw'
+                        deliveredAt: serverTimestamp()
+                    }
+                });
+
+                // வெற்றி!
+                alert("வெற்றி! உங்கள் வேலை Buyer-க்கு டெலிவரி செய்யப்பட்டது.");
+                window.location.href = 'my-orders.html'; // "My Orders" பக்கத்திற்குத் திரும்பு
+
+            } catch (error) {
+                console.error("Error delivering work:", error);
+                alert("வேலையை டெலிவரி செய்வதில் பிழை! மீண்டும் முயற்சிக்கவும்.");
+                confirmBtn.disabled = false;
+                confirmBtn.innerText = "வேலையை அனுப்பி, ஆர்டரை முடி";
+                progressEl.innerText = "பிழை!";
+            }
+        }
+
+        // --- Event Listeners ---
+        confirmBtn.addEventListener('click', handleConfirmDelivery);
+        
+        // பக்கத்தை லோட் செய்
+        initializePage();
+
+    </script>
+</body>
+                  </html>

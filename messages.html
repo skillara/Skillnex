@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 19: Messages (Inbox)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .nav { float: right; }
+        .nav a { color: #007bff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+
+        .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; }
+        
+        #loading, #error-msg { text-align: center; font-size: 1.2rem; color: #777; }
+        
+        /* !! Chat List Style !! */
+        #chat-list-container {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            overflow: hidden; /* For border-radius */
+        }
+        .chat-item-link {
+            display: block;
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            text-decoration: none;
+            color: inherit;
+            background-color: #fff;
+            transition: background-color 0.2s;
+        }
+        .chat-item-link:hover {
+            background-color: #f9f9f9;
+        }
+        .chat-item-link:last-child { border-bottom: none; }
+        
+        .chat-item-user {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #333;
+            margin: 0 0 0.5rem 0;
+        }
+        .chat-item-last-msg {
+            color: #555;
+            font-size: 0.9rem;
+            /* ஒரு வரியில் மட்டும் காட்ட */
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex</div>
+        <nav class="nav">
+            <a href="index.html">முகப்பு (Home)</a>
+            <a href="my-orders.html">எனது ஆர்டர்கள்</a>
+            <a href="messages.html"><b>மெசேஜ்கள்</b></a>
+            <a id="logout-btn" style="cursor: pointer; color: #dc3545;">வெளியேறு</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            <h2>எனது மெசேஜ்கள் (My Inbox)</h2>
+
+            <p id="loading">மெசேஜ்களைப் பதிவேற்றுகிறது...</p>
+            <p id="error-msg" style="display: none;"></p>
+
+            <div id="chat-list-container">
+                </div>
+        </div>
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        // !! இதுதான் Inbox-இன் ரகசியம்: array-contains !!
+        import { 
+            getFirestore, collection, query, where, getDocs, orderBy 
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loadingP = document.getElementById('loading');
+        const errorMsg = document.getElementById('error-msg');
+        const chatListContainer = document.getElementById('chat-list-container');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        let currentUser = null;
+
+        // --- 1. யூசர் லாகின் சோதித்தல் ---
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                currentUser = user;
+                // Inbox-ஐ லோட் செய்
+                loadInbox();
+            } else {
+                showError("உங்கள் மெசேஜ்களைப் பார்க்க <a href='login.html'>லாகின்</a> செய்யவும்.");
+            }
+        });
+
+        // --- 2. Inbox-ஐ லோட் செய்யும் செயல்பாடு ---
+        async function loadInbox() {
+            try {
+                // "chats" collection-ஐத் தேடு...
+                const q = query(collection(db, "chats"), 
+                                // ...அங்கே "participants" Array-ல் என் ID இருக்கிறதா?
+                                where("participants", "array-contains", currentUser.uid),
+                                // ...கடைசியாகப் பேசியது முதலில் வரட்டும்
+                                orderBy("lastMessageAt", "desc"));
+                
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    loadingP.innerText = "உங்களுக்கு இன்னும் மெசேஜ்கள் எதுவும் வரவில்லை.";
+                    return;
+                }
+
+                loadingP.style.display = 'none';
+                chatListContainer.innerHTML = ''; // பழையதை அழி
+
+                querySnapshot.forEach((doc) => {
+                    const chatRoomData = doc.data();
+                    
+                    // !! மிக முக்கியமான லாஜிக் !!
+                    // நான் அல்லாத, மற்ற நபரின் ID-ஐக் கண்டுபிடி
+                    const recipientId = chatRoomData.participants.find(id => id !== currentUser.uid);
+                    
+                    if (!recipientId) return; // (தன்னுடன் chat - தேவையில்லை)
+
+                    // TODO: recipientId-ஐப் பயன்படுத்தி, 'users' collection-ல் இருந்து
+                    // அந்த நபரின் பெயரை (displayName) எடுத்து வந்து காட்டினால் இன்னும் அழகாக இருக்கும்.
+                    // தற்போதைக்கு, ID-ஐயே காட்டுவோம்.
+                    
+                    const chatLink = document.createElement('a');
+                    chatLink.className = 'chat-item-link';
+                    // chat.html-க்கு அந்த Recipient ID-உடன் லிங்க் செய்
+                    chatLink.href = `chat.html?recipientId=${recipientId}`;
+                    
+                    chatLink.innerHTML = `
+                        <h3 class="chat-item-user">Chat with: ${recipientId.substring(0, 15)}...</h3>
+                        <p class="chat-item-last-msg">${chatRoomData.lastMessage}</p>
+                    `;
+                    
+                    chatListContainer.appendChild(chatLink);
+                });
+
+            } catch (error) {
+                console.error("Error loading inbox:", error);
+                showError("Inbox-ஐ லோட் செய்வதில் பிழை.");
+            }
+        }
+
+        function showError(message) {
+            loadingP.style.display = 'none';
+            errorMsg.innerHTML = message;
+            errorMsg.style.display = 'block';
+        }
+        
+        // --- Logout ---
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                window.location.href = 'index.html';
+            }).catch((error) => console.error("Logout Error:", error));
+        });
+
+    </script>
+</body>
+</html>

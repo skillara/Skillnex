@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 23 (உண்மை): புதிய Gig (Full Price Options)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 2rem 1rem; }
+        .container { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); max-width: 900px; margin: 0 auto; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #555; font-weight: 600; }
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%; padding: 0.8rem; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px;
+        }
+        select { background-color: #fff; }
+        textarea { min-height: 100px; }
+        
+        /* !! Pricing Table Style !! */
+        .pricing-table-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr; /* 3 Columns */
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        .package {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fdfdfd;
+        }
+        .package h3 {
+            margin: 0; text-align: center;
+            padding: 1rem;
+            border-bottom: 1px solid #eee;
+        }
+        .package-body { padding: 1rem; }
+        .pkg-form-group { margin-bottom: 0.75rem; }
+        .pkg-form-group label { font-size: 0.9rem; font-weight: 500; }
+        .pkg-form-group input, .pkg-form-group select { padding: 0.5rem; }
+        
+        /* !! Feature List Style !! */
+        .feature-list { margin-top: 2rem; }
+        .feature-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr; /* Feature Name | Basic | Standard | Premium */
+            gap: 1rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f0f0f0;
+            align-items: center;
+        }
+        .feature-name { font-weight: 600; }
+        .feature-header { font-weight: 700; text-align: center; }
+        .feature-check { text-align: center; }
+        .feature-check input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .pricing-table-container { grid-template-columns: 1fr; }
+            .feature-row { grid-template-columns: 1fr 1fr; } /* மொபைலில் சுருக்கு */
+            .feature-row .pkg-std, .feature-row .pkg-prem { display: none; } /* தற்காலிகமாக மறை */
+        }
+
+        button { 
+            width: 100%; padding: 1rem; background-color: #28a745; color: white; border: none; 
+            border-radius: 4px; cursor: pointer; font-size: 1.2rem; font-weight: 700; margin-top: 2rem;
+        }
+        button:disabled { background-color: #ccc; }
+        #auth-check { text-align: center; color: #dc3545; font-size: 1.1rem; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div id="auth-check" style="display: none;">
+            <h2>தடை!</h2>
+            <p>புதிய Gig-ஐ உருவாக்க, நீங்கள் முதலில் <a href="login.html">லாகின்</a> செய்திருக்க வேண்டும்.</p>
+        </div>
+
+        <form id="gig-form" style="display: none;">
+            <h2>புதிய Gig-ஐ உருவாக்கு</h2>
+            
+            <div class="form-group">
+                <label for="gig-title">தலைப்பு (Title)</label>
+                <input type="text" id="gig-title" required>
+            </div>
+            <div class="form-group">
+                <label for="gig-category">பிரிவு (Category)</label>
+                <select id="gig-category" required>
+                    <option value="">-- ஒரு பிரிவைத் தேர்ந்தெடுக்கவும் --</option>
+                    <option value="graphics_design">Graphics & Design</option>
+                    <option value="digital_marketing">Digital Marketing</option>
+                    <option value="writing_translation">Writing & Translation</option>
+                    <option value="web_development">Web Development</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="gig-description">விளக்கம் (Main Description)</label>
+                <textarea id="gig-description" required></textarea>
+            </div>
+
+            <h3>விலை பேக்கேஜ்கள் (Pricing Packages)</h3>
+            <div class="pricing-table-container">
+                <div class="package">
+                    <h3>Basic</h3>
+                    <div class="package-body">
+                        <div class="pkg-form-group">
+                            <label for="basic-title">பேக்கேஜ் பெயர்</label>
+                            <input type="text" id="basic-title" placeholder="e.g., Bronze" required>
+                        </div>
+                        <div class="pkg-form-group">
+                            <label for="basic-desc">விளக்கம்</label>
+                            <input type="text" id="basic-desc" placeholder="e.g., 1 Logo Concept" required>
+                        </div>
+                        <div class="pkg-form-group">
+                            <label for="basic-delivery">டெலிவரி (நாட்கள்)</label>
+                            <input type="number" id="basic-delivery" placeholder="e.g., 3" required>
+                        </div>
+                        <div class="pkg-form-group">
+                            <label for="basic-revisions">திருத்தங்கள் (Revisions)</label>
+                            <select id="basic-revisions">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="unlimited">Unlimited</option>
+                            </select>
+                        </div>
+                        <div class="pkg-form-group">
+                            <label for="basic-price">விலை ($)</label>
+                            <input type="number" id="basic-price" placeholder="e.g., 5" required>
+                        </div>
+                    </div>
+                </div>
+                <div class="package">
+                    <h3>Standard</h3>
+                    <div class="package-body">
+                        <div class="pkg-form-group"><label for="std-title">பேக்கேஜ் பெயர்</label><input type="text" id="std-title" placeholder="e.g., Silver"></div>
+                        <div class="pkg-form-group"><label for="std-desc">விளக்கம்</label><input type="text" id="std-desc" placeholder="e.g., 2 Logo Concepts + PNG"></div>
+                        <div class="pkg-form-group"><label for="std-delivery">டெலிவரி (நாட்கள்)</label><input type="number" id="std-delivery" placeholder="e.g., 2"></div>
+                        <div class="pkg-form-group">
+                            <label for="std-revisions">திருத்தங்கள் (Revisions)</label>
+                            <select id="std-revisions">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="unlimited">Unlimited</option>
+                            </select>
+                        </div>
+                        <div class="pkg-form-group"><label for="std-price">விலை ($)</label><input type="number" id="std-price" placeholder="e.g., 10"></div>
+                    </div>
+                </div>
+                <div class="package">
+                    <h3>Premium</h3>
+                    <div class="package-body">
+                        <div class="pkg-form-group"><label for="prem-title">பேக்கேஜ் பெயர்</label><input type="text" id="prem-title" placeholder="e.g., Gold"></div>
+                        <div class="pkg-form-group"><label for="prem-desc">விளக்கம்</label><input type="text" id="prem-desc" placeholder="e.g., 3 Concepts + Source File"></div>
+                        <div class="pkg-form-group"><label for="prem-delivery">டெலிவரி (நாட்கள்)</label><input type="number" id="prem-delivery" placeholder="e.g., 1"></div>
+                        <div class="pkg-form-group">
+                            <label for="prem-revisions">திருத்தங்கள் (Revisions)</label>
+                            <select id="prem-revisions">
+                                <option value="0">0</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="unlimited">Unlimited</Hoption>
+                            </select>
+                        </div>
+                        <div class="pkg-form-group"><label for="prem-price">விலை ($)</label><input type="number" id="prem-price" placeholder="e.g., 20"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="feature-list">
+                <h3>அம்சங்களை ஒப்பிடு (Compare Features)</h3>
+                <div class="feature-row">
+                    <div class="feature-name feature-header">Feature</div>
+                    <div class="pkg-basic feature-header">Basic</div>
+                    <div class="pkg-std feature-header">Standard</div>
+                    <div class="pkg-prem feature-header">Premium</div>
+                </div>
+                
+                <div class="feature-row">
+                    <div class="feature-name">Source File (e.g., .psd, .ai)</div>
+                    <div class="feature-check pkg-basic"><input type="checkbox" id="basic-feat-source"></div>
+                    <div class="feature-check pkg-std"><input type="checkbox" id="std-feat-source"></div>
+                    <div class="feature-check pkg-prem"><input type="checkbox" id="prem-feat-source"></div>
+                </div>
+                <div class="feature-row">
+                    <div class="feature-name">High Resolution PNG</div>
+                    <div class="feature-check pkg-basic"><input type="checkbox" id="basic-feat-hires"></div>
+                    <div class="feature-check pkg-std"><input type="checkbox" id="std-feat-hires"></div>
+                    <div class="feature-check pkg-prem"><input type="checkbox" id="prem-feat-hires"></div>
+                </div>
+                <div class="feature-row">
+                    <div class="feature-name">3D Mockup</div>
+                    <div class="feature-check pkg-basic"><input type="checkbox" id="basic-feat-mockup"></div>
+                    <div class="feature-check pkg-std"><input type="checkbox" id="std-feat-mockup"></div>
+                    <div class="feature-check pkg-prem"><input type="checkbox" id="prem-feat-mockup"></div>
+                </div>
+                </div>
+            
+            <button id="create-gig-btn" type="submit">Gig-ஐ வெளியிடு (Publish Gig)</button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        const authCheckDiv = document.getElementById('auth-check');
+        const gigForm = document.getElementById('gig-form');
+        const createGigBtn = document.getElementById('create-gig-btn');
+        let currentUserId = null;
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserId = user.uid;
+                authCheckDiv.style.display = 'none';
+                gigForm.style.display = 'block';
+            } else {
+                currentUserId = null;
+                authCheckDiv.style.display = 'block';
+                gigForm.style.display = 'none';
+            }
+        });
+
+        // --- Gig-ஐ Database-ல் சேமிக்கும் செயல்பாடு ---
+        gigForm.addEventListener('submit', async (e) => {
+            e.preventDefault(); // Form-ஐ submit செய்வதைத் தடு
+            if (!currentUserId) { return; }
+
+            createGigBtn.disabled = true;
+            createGigBtn.innerText = "பதிவேற்றுகிறது...";
+
+            try {
+                // !! இதுதான் புதிய, சிக்கலான Gig Object !!
+                const gigData = {
+                    title: document.getElementById('gig-title').value,
+                    category: document.getElementById('gig-category').value,
+                    description: document.getElementById('gig-description').value,
+                    
+                    // Pricing Object
+                    pricing: {
+                        basic: {
+                            title: document.getElementById('basic-title').value,
+                            desc: document.getElementById('basic-desc').value,
+                            delivery: Number(document.getElementById('basic-delivery').value),
+                            revisions: document.getElementById('basic-revisions').value,
+                            price: Number(document.getElementById('basic-price').value),
+                            // Features
+                            feat_source: document.getElementById('basic-feat-source').checked,
+                            feat_hires: document.getElementById('basic-feat-hires').checked,
+                            feat_mockup: document.getElementById('basic-feat-mockup').checked,
+                        },
+                        standard: {
+                            title: document.getElementById('std-title').value,
+                            desc: document.getElementById('std-desc').value,
+                            delivery: Number(document.getElementById('std-delivery').value),
+                            revisions: document.getElementById('std-revisions').value,
+                            price: Number(document.getElementById('std-price').value),
+                            // Features
+                            feat_source: document.getElementById('std-feat-source').checked,
+                            feat_hires: document.getElementById('std-feat-hires').checked,
+                            feat_mockup: document.getElementById('std-feat-mockup').checked,
+                        },
+                        premium: {
+                            title: document.getElementById('prem-title').value,
+                            desc: document.getElementById('prem-desc').value,
+                            delivery: Number(document.getElementById('prem-delivery').value),
+                            revisions: document.getElementById('prem-revisions').value,
+                            price: Number(document.getElementById('prem-price').value),
+                            // Features
+                            feat_source: document.getElementById('prem-feat-source').checked,
+                            feat_hires: document.getElementById('prem-feat-hires').checked,
+                            feat_mockup: document.getElementById('prem-feat-mockup').checked,
+                        }
+                    },
+                    
+                    sellerId: currentUserId,
+                    createdAt: serverTimestamp(),
+                    isApproved: false // Admin Approval
+                };
+
+                // Basic Price இருக்கிறதா என்று மட்டும் சோதி
+                if (!gigData.pricing.basic.price) {
+                    alert("குறைந்தது Basic Price-ஐயாவது நிரப்ப வேண்டும்.");
+                    createGigBtn.disabled = false;
+                    createGigBtn.innerText = "Gig-ஐ வெளியிடு (Publish Gig)";
+                    return;
+                }
+
+                // Firestore-ல் சேமி
+                const docRef = await addDoc(collection(db, "gigs"), gigData);
+                alert("வெற்றி! உங்கள் Gig சமர்ப்பிக்கப்பட்டது. Admin Approve செய்ததும், அது முகப்பில் காட்டப்படும்.");
+                gigForm.reset(); // ஃபார்மை முழுமையாக காலி செய்
+
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                alert("பிழை! Gig-ஐ உருவாக்க முடியவில்லை.");
+            } finally {
+                createGigBtn.disabled = false;
+                createGigBtn.innerText = "Gig-ஐ வெளியிடு (Publish Gig)";
+            }
+        });
+    </script>
+</body>
+                      </html>

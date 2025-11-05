@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gig விவரங்கள் & ரிவ்யூஸ்</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .nav { float: right; }
+        .nav a { color: #007bff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+        
+        /* Gig Details Style */
+        .container { max-width: 800px; margin: 2rem auto; padding: 0 1rem; }
+        .gig-details-card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        
+        #gig-title { font-size: 2rem; font-weight: 700; color: #333; margin-top: 0; }
+        #gig-price { font-size: 1.5rem; font-weight: 600; color: #28a745; margin-bottom: 1rem; }
+        #gig-description { font-size: 1.1rem; color: #555; line-height: 1.6; }
+        #loading-details { font-size: 1.2rem; color: #777; }
+
+        /* Order Button */
+        #order-btn {
+            display: block; width: 100%; padding: 1rem; background-color: #007bff; color: white;
+            border: none; border-radius: 4px; cursor: pointer; font-size: 1.2rem;
+            font-weight: 700; margin-top: 2rem; text-align: center; text-decoration: none;
+        }
+        #order-btn.disabled { background-color: #ccc; cursor: not-allowed; }
+        
+        /* !! படி 15: புதிய ரிவ்யூ ஸ்டைல் !! */
+        .reviews-section {
+            margin-top: 3rem;
+            border-top: 2px solid #eee;
+            padding-top: 2rem;
+        }
+        .review-item {
+            border-bottom: 1px solid #f0f0f0;
+            padding: 1.5rem 0;
+        }
+        .review-item:last-child { border-bottom: none; }
+        .review-header { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .review-buyer { font-weight: 700; color: #333; margin-right: 1rem; }
+        .review-rating { color: #f7d000; font-size: 1.2rem; }
+        .review-comment { color: #555; line-height: 1.5; }
+
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex</div>
+        <nav class="nav">
+            <a href="index.html">முகப்பு (Home)</a>
+            <a href="my-orders.html">எனது ஆர்டர்கள்</a>
+            <a href="create-gig.html">Gig-ஐ உருவாக்கு</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="gig-details-card">
+            
+            <p id="loading-details">விவரங்களைப் பதிவேற்றுகிறது...</p>
+
+            <div id="gig-content" style="display: none;">
+                <h1 id="gig-title"></h1>
+                <div id="gig-price"></div>
+                <p id="gig-description"></p>
+
+                <button id="order-btn" style="display: none;">இந்த சேவையை $--க்கு ஆர்டர் செய்</button>
+                <div id="login-prompt" style="display: none;">
+                    <p>ஆர்டர் செய்ய, நீங்கள் முதலில் <a href="login.html">லாகின்</a> செய்திருக்க வேண்டும்.</p>
+                    <button id="order-btn" class="disabled" disabled>ஆர்டர் செய்</button>
+                </div>
+            </div>
+
+            <div id="reviews-section" class="reviews-section" style="display: none;">
+                <h2>ரிவ்யூஸ் (Reviews)</h2>
+                <div id="reviews-container">
+                    </div>
+                <p id="loading-reviews">ரிவ்யூ-க்களைப் பதிவேற்றுகிறது...</p>
+            </div>
+            
+        </div>
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        // !! collection, query, where, getDocs, orderBy தேவை !!
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loadingP = document.getElementById('loading-details');
+        const gigContentDiv = document.getElementById('gig-content');
+        const titleEl = document.getElementById('gig-title');
+        const priceEl = document.getElementById('gig-price');
+        const descriptionEl = document.getElementById('gig-description');
+        const orderBtn = document.getElementById('order-btn');
+        const loginPromptDiv = document.getElementById('login-prompt');
+        
+        // !! படி 15: புதிய DOM Elements !!
+        const reviewsSectionDiv = document.getElementById('reviews-section');
+        const reviewsContainer = document.getElementById('reviews-container');
+        const loadingReviewsP = document.getElementById('loading-reviews');
+        
+        let gigData = null;
+        let gigId = null;
+        let currentUser = null;
+
+        // --- 1. URL-ல் இருந்து Gig ID-ஐப் பெறுதல் ---
+        const urlParams = new URLSearchParams(window.location.search);
+        gigId = urlParams.get('id'); // '?id=xxxxx'
+
+        if (!gigId) {
+            loadingP.innerText = "பிழை: Gig ID கிடைக்கவில்லை.";
+        }
+
+        // --- 2. Firestore-ல் இருந்து Gig விவரங்களைப் பெறுதல் ---
+        async function fetchGigDetails() {
+            try {
+                const docRef = doc(db, "gigs", gigId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    gigData = docSnap.data();
+                    
+                    titleEl.innerText = gigData.title;
+                    priceEl.innerText = `விலை: $${gigData.price}`;
+                    descriptionEl.innerText = gigData.description;
+                    
+                    // லாகின் நிலையைப் பொறுத்து பட்டனை மாற்று
+                    checkAuthState();
+                    
+                    // !! படி 15: ரிவ்யூ-க்களைப் பெறவும் !!
+                    reviewsSectionDiv.style.display = 'block';
+                    fetchReviews();
+
+                } else {
+                    loadingP.innerText = "இந்த Gig இல்லை அல்லது நீக்கப்பட்டுவிட்டது.";
+                }
+            } catch (error) {
+                console.error("Error fetching gig:", error);
+                loadingP.innerText = "விவரங்களைப் பெறுவதில் பிழை.";
+            }
+        }
+
+        // --- 3. யூசர் லாகின் நிலையைச் சோதித்தல் (ஆர்டர் பட்டனுக்காக) ---
+        function checkAuthState() {
+            onAuthStateChanged(auth, (user) => {
+                loadingP.style.display = 'none'; // Gig விவரங்கள் லோட் ஆகிவிட்டது
+                gigContentDiv.style.display = 'block'; // Gig விவரங்களைக் காட்டு
+
+                if (user) {
+                    currentUser = user;
+                    loginPromptDiv.style.display = 'none';
+                    orderBtn.innerText = `இந்த சேவையை $${gigData.price}-க்கு ஆர்டர் செய்`;
+                    orderBtn.style.display = 'block';
+                } else {
+                    currentUser = null;
+                    orderBtn.style.display = 'none';
+                    loginPromptDiv.style.display = 'block';
+                }
+            });
+        }
+        
+        // --- 4. ஆர்டர் பட்டன் செயல்பாடு ---
+        orderBtn.addEventListener('click', () => {
+            if (currentUser && gigData) {
+                window.location.href = `order-summary.html?gigId=${gigId}`;
+            }
+        });
+
+        // ===============================================
+        // !! படி 15: புதிய செயல்பாடு (Function) !!
+        // ===============================================
+        async function fetchReviews() {
+            try {
+                // "reviews" collection-ஐத் தேடு, அங்கே gigId, இந்த Gig ID-உடன் பொருந்துமாறு
+                const q = query(collection(db, "reviews"), 
+                                where("gigId", "==", gigId),
+                                orderBy("createdAt", "desc"));
+                
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    loadingReviewsP.innerText = "இந்த Gig-க்கு இன்னும் ரிவ்யூ இல்லை. நீங்கள் முதலில் வாங்குங்கள்!";
+                    return;
+                }
+
+                loadingReviewsP.style.display = 'none';
+                reviewsContainer.innerHTML = ''; // பழையதை அழி
+
+                querySnapshot.forEach((doc) => {
+                    const reviewData = doc.data();
+                    
+                    // Star Rating-ஐ உருவாக்கு
+                    let stars = '';
+                    for (let i = 0; i < 5; i++) {
+                        stars += (i < reviewData.rating) ? '★' : '☆';
+                    }
+
+                    const reviewElement = document.createElement('div');
+                    reviewElement.className = 'review-item';
+                    reviewElement.innerHTML = `
+                        <div class="review-header">
+                            <span class="review-buyer">${reviewData.buyerEmail.split('@')[0]}...</span>
+                            <span class="review-rating">${stars}</span>
+                        </div>
+                        <p class="review-comment">${reviewData.comment}</p>
+                    `;
+                    reviewsContainer.appendChild(reviewElement);
+                });
+
+            } catch (error) {
+                console.error("Error fetching reviews:", error);
+                loadingReviewsP.innerText = "ரிவ்யூ-க்களைப் பெறுவதில் பிழை.";
+            }
+        }
+
+        // பக்கத்தை லோட் செய்
+        if (gigId) {
+            fetchGigDetails();
+        }
+
+    </script>
+</body>
+</html>

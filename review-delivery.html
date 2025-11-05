@@ -81,7 +81,7 @@
                 <hr style="border: 0; border-top: 1px solid #eee; margin: 2rem 0;">
 
                 <button id="accept-btn" class="accept-btn">
-                    வேலையை ஏற்றுக்கொண்டு, ஆர்டரை முடி (Accept & Complete)
+                    வேலையை ஏற்றுக்கொண்டு, ரிவ்யூ கொடு
                 </button>
             </div>
 
@@ -132,7 +132,6 @@
                 loadingP.innerText = "பிழை: Order ID கிடைக்கவில்லை.";
                 securityCheckFailedDiv.style.display = 'block';
                 return;
-
             }
 
             onAuthStateChanged(auth, async (user) => {
@@ -155,11 +154,7 @@
                 if (docSnap.exists()) {
                     orderData = docSnap.data();
                     
-                    // !! மிக முக்கியமான பாதுகாப்புச் சோதனை !!
-                    // லாகின் செய்த யூசர் தான் இந்த ஆர்டரின் Buyer-ஆ?
                     if (orderData.buyerId === currentUser.uid && orderData.status === 'delivered') {
-                        // ஆம், இவர் தான் Buyer, மற்றும் ஸ்டேட்டஸ் சரியானது.
-                        // டெலிவரி விவரங்களைக் காட்டு
                         messageText.innerText = orderData.delivery.message;
                         fileNameText.innerText = `ஃபைல் பெயர்: ${orderData.delivery.fileName}`;
                         fileLink.href = orderData.delivery.fileURL;
@@ -183,8 +178,8 @@
         async function handleAcceptDelivery() {
             if (!orderId) return;
             
-            if (!confirm("நீங்கள் இந்த வேலையை ஏற்றுக்கொண்டு, ஆர்டரை முடிக்க விரும்புகிறீர்களா? இதற்குப் பிறகு, பணம் Seller-க்கு அனுப்பப்படும்.")) {
-                return; // யூசர் "Cancel" ஐ அழுத்தினால், எதையும் செய்ய வேண்டாம்
+            if (!confirm("நீங்கள் இந்த வேலையை ஏற்றுக்கொண்டு, ஆர்டரை முடிக்க விரும்புகிறீர்களா?")) {
+                return; 
             }
 
             acceptBtn.disabled = true;
@@ -193,20 +188,24 @@
             try {
                 const orderRef = doc(db, "orders", orderId);
                 
-                // !! ஸ்டேட்டஸ் "completed" ஆக மாறியது !!
                 await updateDoc(orderRef, {
                     status: "completed",
                     completedAt: serverTimestamp() // எப்போது முடிந்தது
                 });
 
-                alert("வெற்றி! ஆர்டர் வெற்றிகரமாக முடிக்கப்பட்டது. Seller-க்கு உங்கள் பணத்தை அனுப்பும்படி அட்மினுக்குத் தெரிவிக்கப்படும்.");
-                window.location.href = 'my-orders.html'; // "My Orders" பக்கத்திற்குத் திரும்பு
+                alert("வெற்றி! ஆர்டர் முடிக்கப்பட்டது. இப்போது உங்கள் ரிவ்யூ-வை கொடுங்கள்.");
+                
+                // ===============================================
+                // !! இதுதான் படி 14-க்கான அப்டேட் !!
+                // "my-orders.html"-க்கு பதிலாக, ரிவ்யூ பக்கத்திற்கு அனுப்பு
+                // ===============================================
+                window.location.href = `leave-review.html?orderId=${orderId}`;
 
             } catch (error) {
                 console.error("Error completing order:", error);
                 alert("ஆர்டரை முடிப்பதில் பிழை! மீண்டும் முயற்சிக்கவும்.");
                 acceptBtn.disabled = false;
-                acceptBtn.innerText = "வேலையை ஏற்றுக்கொண்டு, ஆர்டரை முடி";
+                acceptBtn.innerText = "வேலையை ஏற்றுக்கொண்டு, ரிவ்யூ கொடு";
             }
         }
 
@@ -218,4 +217,4 @@
 
     </script>
 </body>
-  </html>
+    </html>

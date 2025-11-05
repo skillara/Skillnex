@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>படி 7: எனது ஆர்டர்கள்</title>
+    <title>படி 8: எனது ஆர்டர்கள் (Delivery)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
@@ -14,13 +14,8 @@
         .container { max-width: 1000px; margin: 2rem auto; padding: 0 1rem; }
         h2 { border-bottom: 2px solid #ddd; padding-bottom: 0.5rem; }
         
-        /* Access Denied Card */
-        #login-prompt {
-            background: #fff; padding: 2rem; border-radius: 8px; text-align: center;
-            border: 2px solid #dc3545; color: #dc3545;
-        }
+        #login-prompt { background: #fff; padding: 2rem; border-radius: 8px; text-align: center; border: 2px solid #dc3545; color: #dc3545; }
 
-        /* ஆர்டர் பட்டியல் ஸ்டைல் */
         .orders-list { margin-bottom: 2rem; }
         .order-item {
             background: #fff;
@@ -36,10 +31,16 @@
         .order-item-details h3 { margin: 0 0 0.5rem 0; }
         .order-item-details p { margin: 0.25rem 0; color: #555; }
         .order-item-status {
+            text-align: right; /* வலது பக்கம் தள்ளு */
+            flex-shrink: 0; /* சுருங்க வேண்டாம் */
+            margin-left: 1rem;
+        }
+        .status-badge {
             font-weight: 700;
             padding: 0.5rem 1rem;
             border-radius: 20px;
             font-size: 0.9rem;
+            display: block;
         }
         
         /* ஸ்டேட்டஸ்-க்கு ஏற்ப நிறங்கள் */
@@ -48,10 +49,23 @@
         .status-delivered { background-color: #e6f9f0; color: #155724; }
         .status-completed { background-color: #e6f9f0; color: #155724; }
 
-        /* மொபைலுக்கு ஏற்றவாறு */
+        /* !! புதிய டெலிவரி பட்டன் ஸ்டைல் !! */
+        .deliver-btn {
+            background-color: #28a745;
+            color: white;
+            text-decoration: none;
+            padding: 0.6rem 1rem;
+            border-radius: 5px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-top: 0.75rem;
+            display: inline-block; /* ஸ்டேட்டஸ்-க்கு கீழே காட்ட */
+        }
+        .deliver-btn:hover { background-color: #218838; }
+
         @media (max-width: 600px) {
             .order-item { flex-direction: column; align-items: flex-start; }
-            .order-item-status { margin-top: 1rem; }
+            .order-item-status { margin-top: 1rem; margin-left: 0; text-align: left; }
         }
     </style>
 </head>
@@ -128,13 +142,10 @@
         // --- 1. யூசர் லாகின் சோதித்தல் ---
         onAuthStateChanged(auth, (user) => {
             if (user) {
-                // யூசர் லாகின் செய்துள்ளார்!
                 loginPromptDiv.style.display = 'none';
                 ordersContentDiv.style.display = 'block';
-                // ஆர்டர்களைப் பெறவும்
                 fetchAllOrders(user.uid);
             } else {
-                // யூசர் லாகின் செய்யவில்லை
                 loginPromptDiv.style.display = 'block';
                 ordersContentDiv.style.display = 'none';
             }
@@ -161,8 +172,8 @@
                     return;
                 }
 
-                loadingElement.style.display = 'none'; // லோடிங் செய்தியை மறை
-                container.innerHTML = ''; // பழையதை அழி
+                loadingElement.style.display = 'none';
+                container.innerHTML = '';
 
                 querySnapshot.forEach((doc) => {
                     const orderData = doc.data();
@@ -171,22 +182,33 @@
                     const orderItem = document.createElement('div');
                     orderItem.className = 'order-item';
                     
-                    // ஆர்டரின் நிலையை தமிழில் மாற்றுவோம்
                     let statusText = orderData.status;
                     if (statusText === 'pending_confirmation') statusText = "பணம் உறுதிப்படுத்தப்படவில்லை";
                     if (statusText === 'in_progress') statusText = "வேலை நடக்கிறது";
                     if (statusText === 'delivered') statusText = "வேலை டெலிவரி செய்யப்பட்டது";
                     if (statusText === 'completed') statusText = "ஆர்டர் முடிந்தது";
 
-                    // Buyer/Seller ஐக் காட்டு
                     let otherPartyText = '';
                     if (fieldToQuery === 'buyerId') {
-                        // இது Buyer-இன் பக்கம், Seller-ஐக் காட்டு
                         otherPartyText = `<p>Seller ID: ${orderData.sellerId.substring(0, 8)}...</p>`;
                     } else {
-                        // இது Seller-இன் பக்கம், Buyer-ஐக் காட்டு
                         otherPartyText = `<p>Buyer: ${orderData.buyerEmail}</p>`;
                     }
+
+                    // ===============================================
+                    // !! இதுதான் படி 8-க்கான அப்டேட் !!
+                    // ===============================================
+                    let deliveryButtonHtml = '';
+                    // யூசர் ஒரு Seller ஆக இருந்து, ஸ்டேட்டஸ் "in_progress" ஆகவும் இருந்தால்...
+                    if (fieldToQuery === 'sellerId' && orderData.status === 'in_progress') {
+                        // "Deliver Work" பட்டனைச் சேர்
+                        deliveryButtonHtml = `
+                            <a href="deliver-work.html?orderId=${orderId}" class="deliver-btn">
+                                வேலையை டெலிவரி செய்
+                            </a>
+                        `;
+                    }
+                    // ===============================================
 
                     orderItem.innerHTML = `
                         <div class="order-item-details">
@@ -195,9 +217,11 @@
                             ${otherPartyText}
                             <p>Order ID: <code>${orderId}</code></p>
                         </div>
-                        <div class="order-item-status status-${orderData.status}">
-                            ${statusText}
-                        </div>
+                        <div class="order-item-status">
+                            <span class="status-badge status-${orderData.status}">
+                                ${statusText}
+                            </span>
+                            ${deliveryButtonHtml} </div>
                     `;
 
                     container.appendChild(orderItem);
@@ -213,10 +237,10 @@
         logoutBtn.addEventListener('click', () => {
             signOut(auth).then(() => {
                 alert("வெளியேறிவிட்டீர்கள்.");
-                window.location.href = 'index.html'; // முகப்புக்குச் செல்
+                window.location.href = 'index.html';
             }).catch((error) => console.error("Logout Error:", error));
         });
 
     </script>
 </body>
-  </html>
+</html>

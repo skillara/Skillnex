@@ -30,15 +30,22 @@
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive grid */
             gap: 1.5rem;
         }
-        .gig-card {
+
+        /* * இதுதான் அப்டேட் செய்யப்பட்ட ஸ்டைல் (படி 4-க்காக)
+         * இது 'a' (link) டேக்-ஐ ஒரு கார்டு போலக் காட்டுகிறது 
+        */
+        .gig-card-link {
+            text-decoration: none; /* கோடு வராமல் இருக்க */
+            color: inherit; /* நிறம் மாறாமல் இருக்க */
+            display: block;
             background: #fff;
             border-radius: 8px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-            overflow: hidden; /* படத்திற்காக */
+            overflow: hidden;
             transition: transform 0.2s;
         }
-        .gig-card:hover { transform: translateY(-5px); }
-        .gig-card img { /* தற்காலிகமாக ஒரு Placeholder படம் */
+        .gig-card-link:hover { transform: translateY(-5px); }
+        .gig-card-link img {
             width: 100%;
             height: 180px;
             object-fit: cover;
@@ -148,9 +155,7 @@
         // --- Firestore-ல் இருந்து Gigs-களைப் பெறும் செயல்பாடு ---
         async function fetchGigs() {
             try {
-                // "gigs" collection-ஐ அணுகு, புதிதாகச் சேர்த்தவை முதலில் வரும்படி order செய்
                 const gigsQuery = query(collection(db, "gigs"), orderBy("createdAt", "desc"));
-                
                 const querySnapshot = await getDocs(gigsQuery);
                 
                 if (querySnapshot.empty) {
@@ -158,18 +163,23 @@
                     return;
                 }
 
-                loadingP.style.display = 'none'; // லோடிங் செய்தியை மறை
-                gigsContainer.innerHTML = ''; // பழையதை அழி
+                loadingP.style.display = 'none';
+                gigsContainer.innerHTML = '';
 
                 querySnapshot.forEach((doc) => {
-                    // doc.data() என்பது Firestore-ல் உள்ள தரவு (title, price...)
                     const gigData = doc.data();
                     
-                    // ஒவ்வொரு Gig-க்கும் ஒரு HTML கார்டை உருவாக்கு
-                    const gigCard = document.createElement('div');
-                    gigCard.className = 'gig-card';
-                    
-                    gigCard.innerHTML = `
+                    // ===============================================
+                    // !! இதுதான் படி 4-க்கான அப்டேட் !!
+                    // 'div' -க்கு பதிலாக 'a' (link) டேக்-ஐ உருவாக்குகிறோம்
+                    const gigCardLink = document.createElement('a');
+                    gigCardLink.className = 'gig-card-link'; // CSS ஸ்டைலைப் பயன்படுத்துகிறோம்
+                    // கிளிக் செய்தால், Gig ID-உடன் அடுத்த பக்கத்திற்குச் செல்லும்
+                    gigCardLink.href = `gig-details.html?id=${doc.id}`; 
+                    // ===============================================
+
+                    // கார்டின் உள் இருக்கும் HTML
+                    gigCardLink.innerHTML = `
                         <img src="https://via.placeholder.com/300x180?text=${encodeURIComponent(gigData.title)}" alt="Gig Image">
                         <div class="gig-content">
                             <h3 class="gig-title">${gigData.title}</h3>
@@ -180,7 +190,8 @@
                         </div>
                     `;
                     
-                    gigsContainer.appendChild(gigCard);
+                    // அப்டேட் செய்யப்பட்ட லிங்க்-கார்டை பக்கத்தில் சேர்க்கிறோம்
+                    gigsContainer.appendChild(gigCardLink);
                 });
 
             } catch (error) {
@@ -194,4 +205,4 @@
 
     </script>
 </body>
-  </html>
+</html>

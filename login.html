@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 1: லாகின் / பதிவு</title>
+    <style>
+        /* ஹெடர் ஸ்டைல் */
+        .header {
+            background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .nav a { color: #007bff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+        #auth-status-nav a { color: #28a745; }
+        #logout-btn { color: #dc3545; cursor: pointer; }
+
+        /* ஃபார்ம் ஸ்டைல் */
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; }
+        .container { background: #fff; margin: 2rem auto; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); width: 100%; max-width: 400px; box-sizing: border-box; }
+        h2 { text-align: center; color: #333; margin-top: 0; }
+        .form-group { margin-bottom: 1rem; }
+        label { display: block; margin-bottom: 0.5rem; color: #555; font-weight: 600; }
+        input[type="email"], input[type="password"] { 
+            width: 100%; padding: 0.8rem; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; 
+        }
+        button { 
+            width: 100%; padding: 1rem; background-color: #007bff; color: white; border: none; 
+            border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: 700;
+        }
+        button:hover { background-color: #0056b3; }
+        .form-toggle { text-align: center; margin-top: 1rem; }
+        .form-toggle a { color: #007bff; cursor: pointer; text-decoration: underline; }
+        
+        /* லாகின் செய்த பிறகு காட்டும் ஸ்டைல் */
+        #welcome-box {
+             display: none; /* லாகின் செய்ததும் இதைக் காட்டுவோம் */
+             text-align: center;
+        }
+        #welcome-box p { font-size: 1.2rem; word-break: break-all; }
+        #welcome-box button { background-color: #dc3545; }
+
+        .loading-dots { text-align: center; }
+        .loading-dots::after {
+            content: '.'; animation: dots 1s steps(5, end) infinite;
+        }
+        @keyframes dots {
+            0%, 20% { color: rgba(0,0,0,0); text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+            40% { color: #555; text-shadow: .25em 0 0 rgba(0,0,0,0), .5em 0 0 rgba(0,0,0,0); }
+            60% { text-shadow: .25em 0 0 #555, .5em 0 0 rgba(0,0,0,0); }
+            80%, 100% { text-shadow: .25em 0 0 #555, .5em 0 0 #555; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex</div>
+        <nav class="nav">
+            <a href="index.html">முகப்பு (Home)</a>
+            <span id="auth-status-nav">
+                </span>
+            <a id="create-gig-link" href="create-gig.html" style="display: none;">Gig-ஐ உருவாக்கு</a>
+            <a id="my-orders-link" href="my-orders.html" style="display: none;">எனது ஆர்டர்கள்</a>
+            <a id="profile-link" href="profile.html" style="display: none;">சுயவிவரம்</a>
+            <a id="logout-btn" style="display: none;">வெளியேறு (Logout)</a>
+        </nav>
+    </header>
+
+    <div class="container" id="form-container">
+        
+        <div id="welcome-box">
+            <p id="user-status" class="loading-dots">Loading</p>
+            <button id="logout-button-main">வெளியேறு (Logout)</button>
+        </div>
+
+        <div id="register-form" style="display:none;">
+            <h2>புதிய கணக்கு (Register)</h2>
+            <div class="form-group">
+                <label for="reg-email">மின்னஞ்சல் (Email)</label>
+                <input type="email" id="reg-email" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label for="reg-password">கடவுச்சொல் (Password)</label>
+                <input type="password" id="reg-password" placeholder="குறைந்தது 6 எழுத்துகள்">
+            </div>
+            <button id="reg-btn">பதிவு செய் (Register)</button>
+        </div>
+
+        <div id="login-form" style="display:none;">
+            <h2>உள்நுழை (Login)</h2>
+            <div class="form-group">
+                <label for="login-email">மின்னஞ்சல் (Email)</label>
+                <input type="email" id="login-email" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+                <label for="login-password">கடவுச்சொல் (Password)</label>
+                <input type="password" id="login-password" placeholder="******">
+            </div>
+            <button id="login-btn">உள்நுழை (Login)</button>
+        </div>
+
+        <div class="form-toggle" id="toggle-container" style="display:none;">
+            <span id="toggle-text">ஏற்கனவே கணக்கு உள்ளதா? </span>
+            <a id="toggle-link">இங்கே லாகின் செய்யவும்</a>
+        </div>
+    </div>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // --- DOM Elements ---
+        // Header (புதியது)
+        const authStatusNav = document.getElementById('auth-status-nav');
+        const createGigLink = document.getElementById('create-gig-link');
+        const myOrdersLink = document.getElementById('my-orders-link');
+        const profileLink = document.getElementById('profile-link');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // Form
+        const formContainer = document.getElementById('form-container');
+        const welcomeBox = document.getElementById('welcome-box');
+        const userStatus = document.getElementById('user-status');
+        const logoutButtonMain = document.getElementById('logout-button-main');
+        const registerForm = document.getElementById('register-form');
+        const loginForm = document.getElementById('login-form');
+        const toggleContainer = document.getElementById('toggle-container');
+        
+        const regBtn = document.getElementById('reg-btn');
+        const loginBtn = document.getElementById('login-btn');
+        const toggleLinkBtn = document.getElementById('toggle-link');
+
+
+        // --- ஃபார்ம்களை மாற்றுதல் ---
+        function toggleForms() {
+            if (loginForm.style.display === 'none') {
+                loginForm.style.display = 'block';
+                registerForm.style.display = 'none';
+                document.getElementById('toggle-text').innerText = 'புதிய கணக்கு வேண்டுமா? ';
+                document.getElementById('toggle-link').innerText = 'இங்கே பதிவு செய்யவும்';
+            } else {
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'block';
+                document.getElementById('toggle-text').innerText = 'ஏற்கனவே கணக்கு உள்ளதா? ';
+                document.getElementById('toggle-link').innerText = 'இங்கே லாகின் செய்யவும்';
+            }
+        }
+        toggleForms(); // பதிவு ஃபார்மை முதலில் காட்டு
+
+        // --- Register ---
+        function handleRegister() {
+            const email = document.getElementById('reg-email').value;
+            const password = document.getElementById('reg-password').value;
+            if (!email || !password) { alert("மின்னஞ்சல் மற்றும் கடவுச்சொல் தேவை!"); return; }
+
+            createUserWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    alert("வெற்றிகரமாக பதிவு செய்தீர்கள்! இப்போது லாகின் செய்யலாம்.");
+                    toggleForms(); // லாகின் ஃபார்மைக் காட்டு
+                })
+                .catch((error) => { alert("பதிவு செய்யும்போது பிழை: " + error.message); });
+        }
+
+        // --- Login ---
+        function handleLogin() {
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+            if (!email || !password) { alert("மின்னஞ்சல் மற்றும் கடவுச்சொல் தேவை!"); return; }
+
+            signInWithEmailAndPassword(auth, email, password)
+                .then((userCredential) => {
+                    alert("வெற்றிகரமாக உள்நுழைந்தீர்கள்!");
+                    // லாகின் செய்ததும், ஹோம் பக்கத்திற்குச் செல்வது நல்லது
+                    window.location.href = 'index.html';
+                })
+                .catch((error) => { alert("லாகின் செய்யும்போது பிழை: " + error.message); });
+        }
+
+        // --- Logout ---
+        function handleLogout() {
+            signOut(auth).catch((error) => console.error("Logout Error:", error));
+        }
+
+        // --- Auth State Change (மிக முக்கியமான அப்டேட்) ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // யூசர் லாகின் செய்துள்ளார்
+                
+                // ஹெடரை அப்டேட் செய் (புதியது)
+                authStatusNav.innerHTML = `Signed in: ${user.email.substring(0, 10)}...`;
+                createGigLink.style.display = 'inline';
+                myOrdersLink.style.display = 'inline';
+                profileLink.style.display = 'inline';
+                logoutBtn.style.display = 'inline';
+
+                // லாகின் ஃபார்மை மறைத்து, "Welcome" பாக்ஸைக் காட்டு
+                formContainer.style.maxWidth = '600px';
+                registerForm.style.display = 'none';
+                loginForm.style.display = 'none';
+                toggleContainer.style.display = 'none';
+                
+                welcomeBox.style.display = 'block';
+                userStatus.innerText = "வரவேற்கிறோம், " + user.email;
+
+            } else {
+                // யூசர் லாகின் செய்யவில்லை
+                
+                // ஹெடரை அப்டேட் செய் (புதியது)
+                authStatusNav.innerHTML = `<a href="login.html">Login / Register</a>`;
+                createGigLink.style.display = 'none';
+                myOrdersLink.style.display = 'none';
+                profileLink.style.display = 'none';
+                logoutBtn.style.display = 'none';
+
+                // லாகின் ஃபார்மைக் காட்டு
+                formContainer.style.maxWidth = '400px';
+                welcomeBox.style.display = 'none';
+                toggleContainer.style.display = 'block';
+                if (loginForm.style.display !== 'block') {
+                    registerForm.style.display = 'block';
+                }
+            }
+        });
+
+        // --- Event Listeners ---
+        regBtn.addEventListener('click', handleRegister);
+        loginBtn.addEventListener('click', handleLogin);
+        toggleLinkBtn.addEventListener('click', toggleForms);
+        logoutBtn.addEventListener('click', handleLogout); // ஹெடர் Logout
+        logoutButtonMain.addEventListener('click', handleLogout); // பாக்ஸ் Logout
+
+    </script>
+</body>
+</html>

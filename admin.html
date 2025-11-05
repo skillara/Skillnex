@@ -1,0 +1,357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 21: அட்மின் பேனல் (Full)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #333; padding: 1rem 2rem; }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #fff; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        h2 { border-bottom: 2px solid #ddd; padding-bottom: 0.5rem; }
+        
+        #access-denied { background: #fff; padding: 2rem; border-radius: 8px; text-align: center; border: 2px solid #dc3545; color: #dc3545; }
+        
+        /* ஆர்டர் கார்டு ஸ்டைல் */
+        .order-card {
+            background: #fff; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 1.5rem; display: flex; overflow: hidden;
+        }
+        .order-details { padding: 1.5rem; flex-grow: 1; }
+        .order-details p { margin: 0.5rem 0; word-break: break-word; }
+        
+        /* Screenshot ஸ்டைல் (Pending) */
+        .order-proof {
+            width: 300px; background-color: #f9f9f9; padding: 1rem;
+            text-align: center; border-left: 1px solid #eee; flex-shrink: 0;
+        }
+        .order-proof img { width: 100%; border-radius: 4px; border: 1px solid #ddd; cursor: pointer; }
+
+        /* Payout ஸ்டைல் (Completed) */
+        .order-payout {
+            width: 300px; background-color: #e6f9f0; padding: 1.5rem;
+            border-left: 1px solid #d4edda; flex-shrink: 0;
+        }
+        .order-payout h4 { margin-top: 0; }
+        .payout-details {
+            background-color: #fff; padding: 0.5rem 1rem; border-radius: 4px;
+            font-size: 0.9rem; font-weight: 600; white-space: pre-wrap; word-wrap: break-word; border: 1px solid #ccc;
+        }
+        .payout-loading { font-style: italic; color: #555; }
+
+        /* பட்டன்கள் */
+        .action-btn {
+            width: 100%; padding: 0.75rem; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 1rem; font-weight: 700; margin-top: 1rem;
+        }
+        .approve-btn { background-color: #28a745; } /* பச்சை */
+        .paid-btn { background-color: #007bff; } /* நீலம் */
+        .action-btn:disabled { background-color: #ccc; }
+
+        /* !! படி 21: புதிய Gig Approval ஸ்டைல் !! */
+        .gig-approval-card {
+            background: #fff; padding: 1rem 1.5rem; border-radius: 8px;
+            margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center;
+        }
+        .gig-details { flex-grow: 1; }
+        .gig-details h4 { margin: 0 0 0.25rem 0; }
+        .gig-details p { margin: 0; font-size: 0.9rem; color: #555; }
+        .gig-approve-btn {
+            background-color: #ffc107; color: #333; padding: 0.5rem 1rem;
+            font-weight: 600; flex-shrink: 0; margin-left: 1rem;
+        }
+        .gig-approve-btn:hover { background-color: #e0a800; }
+
+        @media (max-width: 768px) {
+            .order-card { flex-direction: column; }
+            .order-proof, .order-payout { width: auto; border-left: none; border-top: 1px solid #eee; }
+        }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex - அட்மின் பேனல் (Full)</div>
+    </header>
+
+    <main class="container">
+        
+        <div id="access-denied" style="display: none;">
+            <h2>தடைசெய்யப்பட்ட அணுகல்!</h2>
+            <p>சரியான அட்மின் கணக்கு மூலம் <a href="login.html">லாகின் செய்யவும்</a>.</p>
+        </div>
+        
+        <div id="admin-content" style="display: none;">
+            
+            <section id="completed-section">
+                <h2>✅ முடிக்கப்பட்டவை (Completed - Payout)</h2>
+                <div id="completed-orders-container">
+                    <p id="loading-completed">முடிக்கப்பட்ட ஆர்டர்களைப் பதிவேற்றுகிறது...</p>
+                </div>
+            </section>
+            
+            <hr style="border: 0; border-top: 2px solid #ccc; margin: 3rem 0;">
+
+            <section id="pending-section">
+                <h2>🕒 காத்திருப்பவை (Pending Confirmation)</h2>
+                <div id="pending-orders-container">
+                    <p id="loading-pending">காத்திருக்கும் ஆர்டர்களைப் பதிவேற்றுகிறது...</p>
+                </div>
+            </section>
+            
+            <section id="inprogress-section">
+                <h2>🚀 வேலையில் உள்ளவை (In Progress)</h2>
+                <div id="inprogress-orders-container">
+                    <p id="loading-inprogress">வேலையில் உள்ள ஆர்டர்களைப் பதிவேற்றுகிறது...</p>
+                </div>
+            </section>
+
+            <hr style="border: 0; border-top: 2px solid #ccc; margin: 3rem 0;">
+            <section id="gig-approval-section">
+                <h2>🔔 புதிய Gig Approval</h2>
+                <div id="pending-gigs-container">
+                    <p id="loading-gigs">Approve செய்ய வேண்டிய Gigs-களைப் பதிவேற்றுகிறது...</p>
+                </div>
+            </section>
+
+        </div>
+
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, doc, updateDoc, getDoc, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // ===============================================
+        // !! உங்கள் உண்மையான அட்மின் UID !!
+        // ===============================================
+        const ADMIN_UID = "Pe0tricsPVUvMweWVYMfPQTkeem1";
+        // ===============================================
+
+        // Firebase Config...
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const accessDeniedDiv = document.getElementById('access-denied');
+        const adminContentDiv = document.getElementById('admin-content');
+        
+        const completedContainer = document.getElementById('completed-orders-container');
+        const pendingContainer = document.getElementById('pending-orders-container');
+        const inProgressContainer = document.getElementById('inprogress-orders-container');
+        // !! படி 21: புதிய DOM Elements !!
+        const pendingGigsContainer = document.getElementById('pending-gigs-container');
+        const loadingGigsP = document.getElementById('loading-gigs');
+
+        // --- 1. அட்மின் சோதித்தல் ---
+        onAuthStateChanged(auth, (user) => {
+            if (user && user.uid === ADMIN_UID) {
+                accessDeniedDiv.style.display = 'none';
+                adminContentDiv.style.display = 'block';
+                // எல்லா ஆர்டர்களையும் பெறவும்
+                fetchAllOrders();
+                // !! படி 21: Gigs-களையும் பெறவும் !!
+                fetchPendingGigs();
+            } else {
+                accessDeniedDiv.style.display = 'block';
+                adminContentDiv.style.display = 'none';
+            }
+        });
+
+        // --- 2. எல்லா ஆர்டர்களையும் பெறும் செயல்பாடு ---
+        function fetchAllOrders() {
+            fetchOrdersByStatus("completed", completedContainer, "loading-completed");
+            fetchOrdersByStatus("pending_confirmation", pendingContainer, "loading-pending");
+            fetchOrdersByStatus("in_progress", inProgressContainer, "loading-inprogress");
+        }
+
+        async function fetchOrdersByStatus(status, container, loadingId) {
+            const loadingElement = document.getElementById(loadingId);
+            try {
+                const q = query(collection(db, "orders"), where("status", "==", status), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    loadingElement.innerText = `இந்த நிலையில் ('${status}') ஆர்டர்கள் எதுவும் இல்லை.`; return;
+                }
+                loadingElement.style.display = 'none';
+                container.innerHTML = '';
+                querySnapshot.forEach((docSnap) => {
+                    const orderData = docSnap.data();
+                    const orderId = docSnap.id;
+                    const orderCard = document.createElement('div');
+                    orderCard.className = 'order-card';
+                    orderCard.id = `order-${orderId}`;
+                    let actionHtml = '';
+                    if (status === 'pending_confirmation') {
+                        actionHtml = `<div class="order-proof"> ... <button class="action-btn approve-btn" data-id="${orderId}">Approve செய்</button></div>`;
+                        orderCard.innerHTML = `<div class="order-details"> ... </div> ${actionHtml.replace('...', `<a href="${orderData.paymentProofURL}" target="_blank"><img src="${orderData.paymentProofURL}" alt="Proof"></a>`).replace('...', `<p><strong>Gig:</strong> ${orderData.gigTitle}</p><p><strong>Buyer:</strong> ${orderData.buyerEmail}</p><p><strong>விலை:</strong> $${orderData.price}</p>`)}
+                    } 
+                    else if (status === 'in_progress') {
+                        actionHtml = `<div class="order-proof" style="background: #e2f0ff;"><p>வேலை நடக்கிறது...</p></div>`;
+                        orderCard.innerHTML = `<div class="order-details"> ... </div> ${actionHtml.replace('...', `<p><strong>Gig:</strong> ${orderData.gigTitle}</p><p><strong>Buyer:</strong> ${orderData.buyerEmail}</p>`)}
+                    }
+                    else if (status === 'completed') {
+                        actionHtml = `<div class="order-payout"> ... <button class="action-btn paid-btn" data-id="${orderId}" data-price="${orderData.price}">பணம் அனுப்பிவிட்டேன்</button></div>`;
+                        orderCard.innerHTML = `<div class="order-details"> ... </div> ${actionHtml.replace('...', `<h4>Seller-க்கு பணம் அனுப்பு</h4><div class="payout-details payout-loading" id="payout-${orderId}">லோட் ஆகிறது...</div>`).replace('...', `<p><strong>Gig:</strong> ${orderData.gigTitle}</p><p><strong>Buyer:</strong> ${orderData.buyerEmail}</p><p><strong>விலை:</strong> $${orderData.price}</p>`)}
+                        fetchPayoutDetails(orderData.sellerId, `payout-${orderId}`);
+                    }
+                    container.appendChild(orderCard);
+                });
+                addListeners();
+            } catch (error) {
+                console.error(`Error fetching ${status} orders:`, error);
+                loadingElement.innerText = "ஆர்டர்களைப் பெறுவதில் பிழை.";
+            }
+        }
+        
+        // --- 3. Seller-இன் வங்கி விவரங்களைப் பெறும் செயல்பாடு ---
+        async function fetchPayoutDetails(sellerId, elementId) {
+            const payoutElement = document.getElementById(elementId);
+            if (!payoutElement) return;
+            try {
+                const userRef = doc(db, "users", sellerId);
+                const userSnap = await getDoc(userRef);
+                if (userSnap.exists() && userSnap.data().payoutDetails) {
+                    payoutElement.innerText = userSnap.data().payoutDetails;
+                    payoutElement.classList.remove('payout-loading');
+                } else {
+                    payoutElement.innerText = "Seller வங்கி விவரங்களைப் பதியவில்லை!";
+                    payoutElement.style.color = 'red';
+                }
+            } catch (error) { payoutElement.innerText = "விவரங்களைப் பெறுவதில் பிழை."; }
+        }
+
+        // ===============================================
+        // !! படி 21: புதிய செயல்பாடு !!
+        // ===============================================
+        async function fetchPendingGigs() {
+            try {
+                // "gigs" collection-ல் isApproved == false என்று இருப்பதைத் தேடு
+                const q = query(collection(db, "gigs"), 
+                                where("isApproved", "==", false),
+                                orderBy("createdAt", "desc"));
+                
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    loadingGigsP.innerText = "Approve செய்ய Gigs எதுவும் இல்லை.";
+                    return;
+                }
+
+                loadingGigsP.style.display = 'none';
+                pendingGigsContainer.innerHTML = '';
+
+                querySnapshot.forEach((doc) => {
+                    const gigData = doc.data();
+                    const gigId = doc.id;
+                    
+                    const gigCard = document.createElement('div');
+                    gigCard.className = 'gig-approval-card';
+                    gigCard.id = `gig-${gigId}`;
+                    
+                    gigCard.innerHTML = `
+                        <div class="gig-details">
+                            <h4>${gigData.title}</h4>
+                            <p>Seller ID: ${gigData.sellerId.substring(0, 10)}... | Category: ${gigData.category}</p>
+                        </div>
+                        <button class="action-btn gig-approve-btn" data-id="${gigId}">Approve</button>
+                    `;
+                    pendingGigsContainer.appendChild(gigCard);
+                });
+                
+                // Approve பட்டன்களுக்கு Listeners-ஐ இணை
+                addGigListeners();
+
+            } catch (error) {
+                console.error("Error fetching pending gigs:", error);
+                loadingGigsP.innerText = "Gigs-களைப் பெறுவதில் பிழை.";
+            }
+        }
+
+        // --- 5. ஆர்டர் பட்டன்களுக்கான Listeners ---
+        function addListeners() {
+            document.querySelectorAll('.approve-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const orderId = button.getAttribute('data-id');
+                    updateOrderStatus(orderId, 'in_progress', button, "Approve செய்");
+                });
+            });
+            document.querySelectorAll('.paid-btn').forEach(button => {
+                button.addEventListener('click', () => {
+                    const orderId = button.getAttribute('data-id');
+                    const price = button.getAttribute('data-price');
+                    const commission = price * 0.20; // 20% கமிஷன்
+                    const payout = price - commission;
+                    if (confirm(`ஆர்டர்: ${orderId}\nமொத்த விலை: $${price}\nஉங்கள் கமிஷன் (20%): $${commission}\nSeller-க்கு அனுப்பவும்: $${payout}\n\nநீங்கள் $${payout} தொகையை Seller-க்கு அனுப்பிவிட்டீர்களா?`)) {
+                        updateOrderStatus(orderId, 'paid', button, "பணம் அனுப்பிவிட்டேன்");
+                    }
+                });
+            });
+        }
+        
+        // ===============================================
+        // !! படி 21: புதிய Gig பட்டன்களுக்கான Listeners !!
+        // ===============================================
+        function addGigListeners() {
+            document.querySelectorAll('.gig-approve-btn').forEach(button => {
+                button.addEventListener('click', async () => {
+                    const gigId = button.getAttribute('data-id');
+                    button.disabled = true;
+                    button.innerText = "Approv...";
+                    
+                    try {
+                        const gigRef = doc(db, "gigs", gigId);
+                        // isApproved: true என்று மாற்று
+                        await updateDoc(gigRef, {
+                            isApproved: true
+                        });
+                        
+                        alert("வெற்றி! Gig Approve செய்யப்பட்டது.");
+                        // பட்டியலிலிருந்து நீக்கு
+                        document.getElementById(`gig-${gigId}`).remove();
+
+                    } catch (error) {
+                        console.error("Error approving gig:", error);
+                        alert("Gig-ஐ Approve செய்வதில் பிழை!");
+                        button.disabled = false;
+                        button.innerText = "Approve";
+                    }
+                });
+            });
+        }
+
+        // --- 6. ஆர்டர் ஸ்டேட்டஸ்-ஐ அப்டேட் செய்யும் பொதுவான செயல்பாடு ---
+        async function updateOrderStatus(orderId, newStatus, button, originalText) {
+            button.disabled = true;
+            button.innerText = "அப்டேட்...";
+            try {
+                const orderRef = doc(db, "orders", orderId);
+                await updateDoc(orderRef, { status: newStatus });
+                alert(`வெற்றி! ஆர்டர் நிலை "${newStatus}" ஆக மாற்றப்பட்டது.`);
+                document.getElementById(`order-${orderId}`).remove();
+            } catch (error) {
+                console.error("Error updating order:", error);
+                alert("ஆர்டரை அப்டேட் செய்வதில் பிழை!");
+                button.disabled = false;
+                button.innerText = originalText;
+            }
+        }
+
+    </script>
+</body>
+</html>

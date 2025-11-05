@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillNex - முகப்பு</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        
+        /* ஹெடர் (Header) ஸ்டைல் */
+        .header {
+            background: #fff;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .nav a { color: #007bff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+        #auth-status { margin-left: 1.5rem; }
+        #auth-status a { color: #28a745; }
+        #logout-btn { color: #dc3545; cursor: pointer; }
+
+        /* Gig கார்டு ஸ்டைல் */
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        h1 { color: #333; }
+        #gigs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); /* Responsive grid */
+            gap: 1.5rem;
+        }
+        .gig-card {
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden; /* படத்திற்காக */
+            transition: transform 0.2s;
+        }
+        .gig-card:hover { transform: translateY(-5px); }
+        .gig-card img { /* தற்காலிகமாக ஒரு Placeholder படம் */
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            background-color: #eee;
+        }
+        .gig-content { padding: 1rem; }
+        .gig-title { font-size: 1.2rem; font-weight: 600; color: #333; margin: 0 0 0.5rem 0; }
+        .gig-description {
+            font-size: 0.9rem;
+            color: #555;
+            height: 40px; /* 2 வரிகள் மட்டும் காட்ட */
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+        .gig-footer {
+            padding: 1rem;
+            border-top: 1px solid #f0f0f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .gig-price { font-size: 1.25rem; font-weight: 700; color: #28a745; }
+        .gig-price span { font-size: 0.9rem; font-weight: 400; color: #777; }
+        
+        /* லோடிங் ஸ்டைல் */
+        #loading { text-align: center; font-size: 1.2rem; color: #777; margin-top: 3rem; }
+
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex</div>
+        <nav class="nav">
+            <a href="index.html">முகப்பு (Home)</a>
+            <span id="auth-status">
+                <a href="login.html">Login / Register</a>
+            </span>
+            <a id="create-gig-link" href="create-gig.html" style="display: none;">Gig-ஐ உருவாக்கு</a>
+            <a id="logout-btn" style="display: none;">வெளியேறு (Logout)</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <h1>கிடைக்கும் சேவைகள் (Available Gigs)</h1>
+        
+        <div id="gigs-container">
+            </div>
+
+        <p id="loading">சேவைகளைப் பதிவேற்றுகிறது...</p>
+
+    </main>
+
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const authStatusSpan = document.getElementById('auth-status');
+        const createGigLink = document.getElementById('create-gig-link');
+        const logoutBtn = document.getElementById('logout-btn');
+        const gigsContainer = document.getElementById('gigs-container');
+        const loadingP = document.getElementById('loading');
+
+        // --- யூசர் லாகின் செய்துள்ளாரா என்று சோதித்தல் ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // யூசர் லாகின் செய்துள்ளார்
+                authStatusSpan.innerHTML = `Signed in as: ${user.email}`;
+                createGigLink.style.display = 'inline'; // "Create Gig" லிங்கைக் காட்டு
+                logoutBtn.style.display = 'inline'; // Logout பட்டனைக் காட்டு
+            } else {
+                // யூசர் லாகின் செய்யவில்லை
+                authStatusSpan.innerHTML = `<a href="login.html">Login / Register</a>`;
+                createGigLink.style.display = 'none'; // "Create Gig" லிங்கை மறை
+                logoutBtn.style.display = 'none'; // Logout பட்டனை மறை
+            }
+        });
+
+        // --- Logout செயல்பாடு ---
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).catch((error) => console.error("Logout Error:", error));
+        });
+
+
+        // --- Firestore-ல் இருந்து Gigs-களைப் பெறும் செயல்பாடு ---
+        async function fetchGigs() {
+            try {
+                // "gigs" collection-ஐ அணுகு, புதிதாகச் சேர்த்தவை முதலில் வரும்படி order செய்
+                const gigsQuery = query(collection(db, "gigs"), orderBy("createdAt", "desc"));
+                
+                const querySnapshot = await getDocs(gigsQuery);
+                
+                if (querySnapshot.empty) {
+                    loadingP.innerText = "தற்போது Gigs எதுவும் இல்லை. நீங்கள் முதலில் ஒன்று உருவாக்குங்கள்!";
+                    return;
+                }
+
+                loadingP.style.display = 'none'; // லோடிங் செய்தியை மறை
+                gigsContainer.innerHTML = ''; // பழையதை அழி
+
+                querySnapshot.forEach((doc) => {
+                    // doc.data() என்பது Firestore-ல் உள்ள தரவு (title, price...)
+                    const gigData = doc.data();
+                    
+                    // ஒவ்வொரு Gig-க்கும் ஒரு HTML கார்டை உருவாக்கு
+                    const gigCard = document.createElement('div');
+                    gigCard.className = 'gig-card';
+                    
+                    gigCard.innerHTML = `
+                        <img src="https://via.placeholder.com/300x180?text=${encodeURIComponent(gigData.title)}" alt="Gig Image">
+                        <div class="gig-content">
+                            <h3 class="gig-title">${gigData.title}</h3>
+                            <p class="gig-description">${gigData.description}</p>
+                        </div>
+                        <div class="gig-footer">
+                            <span class="gig-price"><span>Starting at</span> $${gigData.price}</span>
+                        </div>
+                    `;
+                    
+                    gigsContainer.appendChild(gigCard);
+                });
+
+            } catch (error) {
+                console.error("Error fetching gigs: ", error);
+                loadingP.innerText = "Gigs-களைப் பெறுவதில் பிழை ஏற்பட்டது.";
+            }
+        }
+
+        // பக்கம் லோட் ஆனதும், Gigs-களைப் பெற இந்தச் செயல்பாட்டை இயக்கு
+        fetchGigs();
+
+    </script>
+</body>
+  </html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 14: ரிவ்யூ கொடு</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .container { max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; text-align: center; }
+        #loading, #error-msg { text-align: center; font-size: 1.2rem; color: #777; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        textarea {
+            width: 100%; min-height: 100px; padding: 0.8rem; box-sizing: border-box;
+            border: 1px solid #ddd; border-radius: 4px;
+        }
+
+        /* 5-Star Rating Style */
+        .star-rating {
+            display: flex;
+            flex-direction: row-reverse; /* வலமிருந்து இடமாக */
+            justify-content: center;
+            font-size: 2.5rem;
+            cursor: pointer;
+        }
+        .star-rating input { display: none; }
+        .star-rating label {
+            color: #ccc;
+            transition: color 0.2s;
+        }
+        .star-rating input:checked ~ label,
+        .star-rating label:hover,
+        .star-rating label:hover ~ label {
+            color: #f7d000; /* தங்க நிறம் */
+        }
+        
+        button {
+            width: 100%; padding: 1rem; background-color: #007bff; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 1.2rem; font-weight: 700; margin-top: 1rem;
+        }
+        button:disabled { background-color: #ccc; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex - ரிவ்யூ</div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            
+            <p id="loading">ஆர்டர் விவரங்களைப் பதிவேற்றுகிறது...</p>
+            <p id="error-msg" style="display: none;"></p>
+
+            <div id="review-form" style="display: none;">
+                <h2>ஆர்டரை ரிவ்யூ செய்</h2>
+                <p style="text-align: center;"><strong><span id="gig-title">Gig Title</span></strong></p>
+
+                <div class="form-group">
+                    <label style="text-align: center;">உங்கள் ரேட்டிங்</label>
+                    <div class="star-rating">
+                        <input type="radio" id="star5" name="rating" value="5"><label for="star5">★</label>
+                        <input type="radio" id="star4" name="rating" value="4"><label for="star4">★</label>
+                        <input type="radio" id="star3" name="rating" value="3"><label for="star3">★</label>
+                        <input type="radio" id="star2" name="rating" value="2"><label for="star2">★</label>
+                        <input type="radio" id="star1" name="rating" value="1"><label for="star1">★</label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="review-comment">உங்கள் கருத்து (Comment)</label>
+                    <textarea id="review-comment" placeholder="Seller-இன் வேலையைப் பற்றி உங்கள் கருத்தைக் கூறவும்..."></textarea>
+                </div>
+                
+                <button id="submit-review-btn">ரிவ்யூ-வைச் சமர்ப்பி</button>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        // !! addDoc, collection, doc, getDoc, serverTimestamp தேவை !!
+        import { getFirestore, doc, getDoc, addDoc, collection, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loadingP = document.getElementById('loading');
+        const errorMsg = document.getElementById('error-msg');
+        const reviewFormDiv = document.getElementById('review-form');
+        const gigTitleEl = document.getElementById('gig-title');
+        const submitBtn = document.getElementById('submit-review-btn');
+
+        let orderData = null;
+        let orderId = null;
+        let currentUser = null;
+
+        // --- 1. Order ID-ஐப் பெறுதல் மற்றும் லாகின் சோதித்தல் ---
+        async function initializePage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            orderId = urlParams.get('orderId');
+
+            if (!orderId) {
+                showError("பிழை: Order ID கிடைக்கவில்லை.");
+                return;
+            }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await checkSecurityAndFetchOrder();
+                } else {
+                    showError("ரிவ்யூ கொடுக்க, நீங்கள் <a href='login.html'>லாகின்</a> செய்திருக்க வேண்டும்.");
+                }
+            });
+        }
+
+        // --- 2. பாதுகாப்புச் சோதனை மற்றும் ஆர்டர் விவரங்களைப் பெறுதல் ---
+        async function checkSecurityAndFetchOrder() {
+            try {
+                const docRef = doc(db, "orders", orderId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    orderData = docSnap.data();
+                    
+                    // !! பாதுகாப்புச் சோதனை !!
+                    // லாகின் செய்த யூசர் தான் இந்த ஆர்டரின் Buyer-ஆ?
+                    if (orderData.buyerId === currentUser.uid && orderData.status === 'completed') {
+                        // ஆம், இவர் தான் Buyer, மற்றும் ஸ்டேட்டஸ் சரியானது.
+                        gigTitleEl.innerText = orderData.gigTitle;
+                        loadingP.style.display = 'none';
+                        reviewFormDiv.style.display = 'block';
+                    } else {
+                        throw new Error("User is not the buyer or order is not completed.");
+                    }
+                } else {
+                    throw new Error("Order not found.");
+                }
+            } catch (error) {
+                console.error("Security check failed:", error);
+                showError("இந்த ஆர்டரை ரிவ்யூ செய்ய உங்களுக்கு அனுமதி இல்லை.");
+            }
+        }
+
+        // --- 3. ரிவ்யூ-வைச் சேமிக்கும் செயல்பாடு ---
+        async function handleSubmitReview() {
+            const comment = document.getElementById('review-comment').value;
+            const ratingInput = document.querySelector('input[name="rating"]:checked');
+            
+            if (!ratingInput) {
+                alert("தயவுசெய்து ஒரு ஸ்டார் ரேட்டிங் (1-5) தேர்ந்தெடுக்கவும்.");
+                return;
+            }
+            const rating = Number(ratingInput.value);
+
+            if (!comment) {
+                alert("தயவுசெய்து உங்கள் கருத்தை (Comment) டைப் செய்யவும்.");
+                return;
+            }
+
+            submitBtn.disabled = true;
+            submitBtn.innerText = "சமர்ப்பிக்கிறது...";
+
+            try {
+                // "reviews" என்ற புதிய collection-ல் சேமி
+                await addDoc(collection(db, "reviews"), {
+                    gigId: orderData.gigId,
+                    sellerId: orderData.sellerId,
+                    buyerId: currentUser.uid,
+                    buyerEmail: currentUser.email,
+                    orderId: orderId,
+                    rating: rating,
+                    comment: comment,
+                    createdAt: serverTimestamp()
+                });
+
+                alert("வெற்றி! உங்கள் ரிவ்யூ சமர்ப்பிக்கப்பட்டது. நன்றி!");
+                window.location.href = 'my-orders.html'; // "My Orders" பக்கத்திற்குத் திரும்பு
+
+            } catch (error) {
+                console.error("Error submitting review:", error);
+                alert("ரிவ்யூ-வைச் சமர்ப்பிப்பதில் பிழை!");
+                submitBtn.disabled = false;
+                submitBtn.innerText = "ரிவ்யூ-வைச் சமர்ப்பி";
+            }
+        }
+
+        function showError(message) {
+            loadingP.style.display = 'none';
+            errorMsg.innerHTML = message;
+            errorMsg.style.display = 'block';
+        }
+
+        // --- Event Listeners ---
+        submitBtn.addEventListener('click', handleSubmitReview);
+        
+        // பக்கத்தை லோட் செய்
+        initializePage();
+
+    </script>
+</body>
+  </html>

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 10.5: சுயவிவரம் & வங்கி விவரங்கள்</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .nav { float: right; }
+        .nav a { color: #007bff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+        
+        .container { max-width: 700px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; }
+        
+        #login-prompt { text-align: center; color: #dc3545; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input[type="text"], textarea {
+            width: 100%; padding: 0.8rem; box-sizing: border-box;
+            border: 1px solid #ddd; border-radius: 4px;
+        }
+        textarea { min-height: 100px; }
+        .payout-note {
+            font-size: 0.9rem;
+            color: #555;
+            background-color: #f4f4f4;
+            padding: 0.75rem;
+            border-radius: 4px;
+        }
+
+        button {
+            width: 100%; padding: 1rem; background-color: #007bff; color: white; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 1.2rem; font-weight: 700; margin-top: 1rem;
+        }
+        button:hover { background-color: #0056b3; }
+        button:disabled { background-color: #ccc; }
+        #loading { text-align: center; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex</div>
+        <nav class="nav">
+            <a href="index.html">முகப்பு (Home)</a>
+            <a href="my-orders.html">எனது ஆர்டர்கள்</a>
+            <a href="profile.html"><b>சுயவிவரம்</b></a>
+            <a id="logout-btn" style="cursor: pointer; color: #dc3545;">வெளியேறு</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            
+            <div id="login-prompt" style="display: none;">
+                <h2>தடை!</h2>
+                <p>உங்கள் சுயவிவரத்தைப் பார்க்க, நீங்கள் முதலில் <a href="login.html">லாகின்</a> செய்திருக்க வேண்டும்.</p>
+            </div>
+
+            <div id="loading" style="display: none;">
+                <p>சுயவிவரத்தைப் பதிவேற்றுகிறது...</p>
+            </div>
+
+            <div id="profile-form" style="display: none;">
+                <h2>எனது சுயவிவரம் (My Profile)</h2>
+                <p>உங்கள் ஈமெயில்: <strong id="user-email"></strong></p>
+
+                <div class="form-group">
+                    <label for="display-name">காட்டும் பெயர் (Display Name)</label>
+                    <input type="text" id="display-name" placeholder="உதாரணம்: S.F. Afritha">
+                </div>
+                
+                <div class="form-group">
+                    <label for="user-skills">திறமைகள் (Skills)</label>
+                    <textarea id="user-skills" placeholder="உதாரணம்: Logo Design, Web Development, Content Writing"></textarea>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 2rem 0;">
+
+                <h2>பணம் பெறும் விவரங்கள் (Payout Details)</h2>
+                <div class="form-group">
+                    <label for="payout-details">வங்கி விவரங்கள் / GPay</label>
+                    <textarea id="payout-details" placeholder="BOC: 90464061, S.F.Afritha (or) GPay: +9475..."></textarea>
+                    <p class="payout-note">
+                        <strong>முக்கியம்:</strong> ఇది Seller-களுக்கு மட்டும். நீங்கள் (Owner) இந்தப் பக்கத்தில் உள்ள விவரங்களுக்குத்தான் பணத்தை அனுப்புவீர்கள். தயவுசெய்து இதைச் சரியாக உள்ளிடவும்.
+                    </p>
+                </div>
+                
+                <button id="save-profile-btn">சுயவிவரத்தைச் சேமி (Save Profile)</button>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        // !! doc, getDoc, மற்றும் setDoc-ஐ இறக்குமதி செய்கிறோம் !!
+        import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loginPromptDiv = document.getElementById('login-prompt');
+        const loadingDiv = document.getElementById('loading');
+        const profileFormDiv = document.getElementById('profile-form');
+        const userEmailEl = document.getElementById('user-email');
+        const displayNameInput = document.getElementById('display-name');
+        const skillsInput = document.getElementById('user-skills');
+        const payoutInput = document.getElementById('payout-details');
+        const saveBtn = document.getElementById('save-profile-btn');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        let currentUser = null;
+
+        // --- 1. யூசர் லாகின் சோதித்தல் ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // யூசர் லாகின் செய்துள்ளார்!
+                currentUser = user;
+                loginPromptDiv.style.display = 'none';
+                loadingDiv.style.display = 'block'; // லோடிங்...
+                profileFormDiv.style.display = 'none';
+                
+                userEmailEl.innerText = currentUser.email;
+                // சுயவிவரத்தைப் பதிவேற்று
+                loadUserProfile();
+            } else {
+                // யூசர் லாகின் செய்யவில்லை
+                currentUser = null;
+                loginPromptDiv.style.display = 'block';
+                loadingDiv.style.display = 'none';
+                profileFormDiv.style.display = 'none';
+            }
+        });
+
+        // --- 2. யூசரின் சுயவிவரத்தை Firestore-ல் இருந்து பெறுதல் ---
+        async function loadUserProfile() {
+            if (!currentUser) return;
+
+            try {
+                // "users" collection-ல் யூசரின் UID-ஐப் பயன்படுத்தி டாக்குமெண்ட்டைத் தேடு
+                const docRef = doc(db, "users", currentUser.uid);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    // டாக்குமெண்ட் ஏற்கனவே இருந்தால், விவரங்களைப் காட்டு
+                    const userData = docSnap.data();
+                    displayNameInput.value = userData.displayName || '';
+                    skillsInput.value = userData.skills || '';
+                    payoutInput.value = userData.payoutDetails || '';
+                } else {
+                    // இது புதிய யூசர். சுயவிவரம் இன்னும் உருவாக்கப்படவில்லை.
+                    console.log("No profile data found, user can create one.");
+                }
+
+            } catch (error) {
+                console.error("Error loading profile:", error);
+                alert("சுயவிவரத்தைப் பதிவேற்றுவதில் பிழை!");
+            } finally {
+                loadingDiv.style.display = 'none';
+                profileFormDiv.style.display = 'block'; // ஃபார்மைக் காட்டு
+            }
+        }
+
+        // --- 3. சுயவிவரத்தைச் சேமிக்கும் செயல்பாடு ---
+        async function handleSaveProfile() {
+            if (!currentUser) return;
+
+            const profileData = {
+                email: currentUser.email, // ஈமெயிலையும் சேமி
+                displayName: displayNameInput.value,
+                skills: skillsInput.value,
+                payoutDetails: payoutInput.value
+            };
+
+            saveBtn.disabled = true;
+            saveBtn.innerText = "சேமிக்கிறது...";
+
+            try {
+                // "users" collection-ல் யூசரின் UID-ஐ ID-ஆகக் கொண்ட டாக்குமெண்ட்டை உருவாக்கு/அப்டேட் செய்
+                const docRef = doc(db, "users", currentUser.uid);
+                
+                // setDoc + merge:true = இது டாக்குமெண்ட் இல்லையென்றால் உருவாக்கும், இருந்தால் அப்டேட் மட்டும் செய்யும்.
+                await setDoc(docRef, profileData, { merge: true });
+
+                alert("வெற்றி! உங்கள் சுயவிவரம் சேமிக்கப்பட்டது.");
+
+            } catch (error) {
+                console.error("Error saving profile:", error);
+                alert("சுயவிவரத்தைச் சேமிப்பதில் பிழை!");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "சுயவிவரத்தைச் சேமி (Save Profile)";
+            }
+        }
+
+        // --- Event Listeners ---
+        saveBtn.addEventListener('click', handleSaveProfile);
+
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth).then(() => {
+                alert("வெளியேறிவிட்டீர்கள்.");
+                window.location.href = 'index.html';
+            }).catch((error) => console.error("Logout Error:", error));
+        });
+
+    </script>
+</body>
+  </html>

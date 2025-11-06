@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gig விவரங்கள் (Multi-Price)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .nav { float: right; }
+        .nav a { color: #007bff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+        
+        /* Layout: 70% Gig Details, 30% Pricing */
+        .container {
+            max-width: 1100px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* 2/3 for details, 1/3 for pricing */
+            gap: 2rem;
+        }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; } /* மொபைலில் 1 column */
+        }
+
+        /* Gig Details Card (இடது பக்கம்) */
+        .gig-details-container {
+            background: #fff; padding: 2rem; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+        #gig-title { font-size: 2rem; font-weight: 700; color: #333; margin-top: 0; }
+        #gig-description { font-size: 1.1rem; color: #555; line-height: 1.6; }
+        #loading-details { font-size: 1.2rem; color: #777; }
+
+        /* Pricing Card (வலது பக்கம்) */
+        .pricing-container {
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border: 1px solid #ddd;
+            overflow: hidden; /* For border-radius */
+            position: sticky; /* ஸ்க்ரோல் செய்யும்போது, இது அங்கேயே நிற்கும் */
+            top: 2rem;
+        }
+        
+        /* !! படி 24: புதிய Tabbed Pricing !! */
+        .pricing-tabs {
+            display: flex;
+            border-bottom: 1px solid #ddd;
+        }
+        .tab-btn {
+            flex-grow: 1;
+            padding: 1rem;
+            text-align: center;
+            font-weight: 600;
+            background: #f9f9f9;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+        }
+        .tab-btn.active {
+            background: #fff;
+            color: #007bff;
+            border-bottom: 3px solid #007bff;
+        }
+        
+        .pricing-content-area { padding: 1.5rem; }
+        .pricing-package-content { display: none; } /* Default-ஆக மறை */
+        .pricing-package-content.active { display: block; } /* JS மூலம் காட்டு */
+        
+        .package-price { font-size: 1.8rem; font-weight: 700; color: #28a745; }
+        .package-desc { font-size: 1rem; color: #555; margin: 1rem 0; }
+        
+        .feature-list-display { list-style: none; padding: 0; margin: 1rem 0; }
+        .feature-list-display li {
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        .feature-list-display li.included { color: #333; }
+        .feature-list-display li.not-included { color: #aaa; text-decoration: line-through; }
+        .feature-list-display li.included::before { content: '✓'; color: #28a745; margin-right: 0.5rem; }
+        .feature-list-display li.not-included::before { content: '✗'; color: #dc3545; margin-right: 0.5rem; }
+
+        .action-button {
+            display: block; width: 100%; padding: 1rem; border: none; border-radius: 4px;
+            cursor: pointer; font-size: 1.2rem; font-weight: 700;
+            margin-top: 1rem; text-align: center; text-decoration: none;
+        }
+        #order-btn { background-color: #007bff; color: white; }
+        #contact-btn { background-color: #6c757d; color: white; margin-top: 0.5rem; }
+        .disabled { background-color: #ccc; cursor: not-allowed; }
+
+        /* ரிவ்யூ ஸ்டைல் */
+        .reviews-section {
+            margin-top: 3rem; border-top: 2px solid #eee; padding-top: 2rem;
+        }
+        /* ... (மற்ற ரிவ்யூ ஸ்டைல்கள் படி 15-ல் இருந்து) ... */
+        .review-item { border-bottom: 1px solid #f0f0f0; padding: 1.5rem 0; }
+        .review-header { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .review-buyer { font-weight: 700; }
+        .review-rating { color: #f7d000; font-size: 1.2rem; margin-left: 1rem; }
+        .review-comment { color: #555; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex</div>
+        <nav class="nav">
+            <a href="index.html">முகப்பு (Home)</a>
+            <a href="my-orders.html">எனது ஆர்டர்கள்</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        
+        <div class="gig-details-container">
+            <p id="loading-details">விவரங்களைப் பதிவேற்றுகிறது...</p>
+
+            <div id="gig-content" style="display: none;">
+                <h1 id="gig-title"></h1>
+                <p id="gig-description"></p>
+            </div>
+            
+            <div id="reviews-section" class="reviews-section" style="display: none;">
+                <h2>ரிவ்யூஸ் (Reviews)</h2>
+                <div id="reviews-container"></div>
+                <p id="loading-reviews">ரிவ்யூ-க்களைப் பதிவேற்றுகிறது...</p>
+            </div>
+        </div>
+
+        <div class="pricing-container">
+            <p id="loading-price" style="text-align: center; padding: 1rem;">விலை ஏற்றப்படுகிறது...</p>
+            
+            <div id="pricing-content" style="display: none;">
+                <div class="pricing-tabs">
+                    <button class="tab-btn active" data-pkg="basic">Basic</button>
+                    <button class="tab-btn" data-pkg="standard">Standard</button>
+                    <button class="tab-btn" data-pkg="premium">Premium</button>
+                </div>
+                
+                <div class="pricing-content-area">
+                    <div id="pkg-basic" class="pricing-package-content active">
+                        <div class="package-price">$<span id="basic-price">--</span></div>
+                        <p class="package-desc" id="basic-desc"></p>
+                        <ul class="feature-list-display">
+                            <li id="basic-delivery">-- дни டெலிவரி</li>
+                            <li id="basic-revisions">-- திருத்தங்கள்</li>
+                            <li id="basic-feat-source">Source File</li>
+                            <li id="basic-feat-hires">High Resolution</li>
+                            <li id="basic-feat-mockup">3D Mockup</li>
+                        </ul>
+                    </div>
+                    <div id="pkg-standard" class="pricing-package-content">
+                        <div class="package-price">$<span id="std-price">--</span></div>
+                        <p class="package-desc" id="std-desc"></p>
+                        <ul class="feature-list-display">
+                            <li id="std-delivery">-- дни டெலிவரி</li>
+                            <li id="std-revisions">-- திருத்தங்கள்</li>
+                            <li id="std-feat-source">Source File</li>
+                            <li id="std-feat-hires">High Resolution</li>
+                            <li id="std-feat-mockup">3D Mockup</li>
+                        </ul>
+                    </div>
+                    <div id="pkg-premium" class="pricing-package-content">
+                        <div class="package-price">$<span id="prem-price">--</span></div>
+                        <p class="package-desc" id="prem-desc"></p>
+                        <ul class="feature-list-display">
+                            <li id="prem-delivery">-- дни டெலிவரி</li>
+                            <li id="prem-revisions">-- திருத்தங்கள்</li>
+                            <li id="prem-feat-source">Source File</li>
+                            <li id="prem-feat-hires">High Resolution</li>
+                            <li id="prem-feat-mockup">3D Mockup</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="action-buttons">
+                        <button id="order-btn" class="action-button" style="display: none;">Continue ($--)</button>
+                        <button id="contact-btn" class="action-button" style="display: none;">Seller-ஐத் தொடர்புகொள்</button>
+                    </div>
+                    <div id="login-prompt" style="display: none;">
+                        <p style="text-align:center;">ஆர்டர் செய்ய <a href="login.html">லாகின்</a> செய்யவும்.</p>
+                        <button class="action-button disabled" disabled>Continue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, collection, query, where, getDocs, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loadingDetailsP = document.getElementById('loading-details');
+        const loadingPriceP = document.getElementById('loading-price');
+        const gigContentDiv = document.getElementById('gig-content');
+        const pricingContentDiv = document.getElementById('pricing-content');
+        const titleEl = document.getElementById('gig-title');
+        const descriptionEl = document.getElementById('gig-description');
+        const orderBtn = document.getElementById('order-btn');
+        const contactBtn = document.getElementById('contact-btn');
+        const loginPromptDiv = document.getElementById('login-prompt');
+        const reviewsSectionDiv = document.getElementById('reviews-section');
+        
+        let gigData = null;
+        let gigId = null;
+        let currentUser = null;
+        let selectedPackage = 'basic'; // Default-ஆக Basic-ஐத் தேர்ந்தெடு
+
+        // --- 1. Gig ID-ஐப் பெறுதல் ---
+        const urlParams = new URLSearchParams(window.location.search);
+        gigId = urlParams.get('id');
+        if (!gigId) {
+            loadingDetailsP.innerText = "பிழை: Gig ID கிடைக்கவில்லை.";
+            loadingPriceP.style.display = 'none';
+        }
+
+        // --- 2. Gig விவரங்களைப் பெறுதல் ---
+        async function fetchGigDetails() {
+            try {
+                const docRef = doc(db, "gigs", gigId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    gigData = docSnap.data();
+                    
+                    // !! படி 24: புதிய Pricing Data-வை நிரப்பு !!
+                    if (!gigData.pricing) {
+                        throw new Error("This gig is outdated and does not have a pricing structure.");
+                    }
+                    
+                    // பொதுவான விவரங்கள்
+                    titleEl.innerText = gigData.title;
+                    descriptionEl.innerText = gigData.description;
+                    
+                    // 3 பேக்கேஜ்களையும் நிரப்பு
+                    fillPackageDetails('basic', gigData.pricing.basic);
+                    fillPackageDetails('standard', gigData.pricing.standard);
+                    fillPackageDetails('premium', gigData.pricing.premium);
+                    
+                    // லாகின் நிலையைச் சோதி
+                    checkAuthState();
+                    
+                    // ரிவ்யூ-க்களைப் பெறு
+                    reviewsSectionDiv.style.display = 'block';
+                    fetchReviews(gigId, db); // (Helper function assumed)
+                    
+                    loadingDetailsP.style.display = 'none';
+                    gigContentDiv.style.display = 'block';
+                    loadingPriceP.style.display = 'none';
+                    pricingContentDiv.style.display = 'block';
+                } else {
+                    loadingDetailsP.innerText = "இந்த Gig இல்லை அல்லது நீக்கப்பட்டுவிட்டது.";
+                }
+            } catch (error) {
+                console.error("Error fetching gig:", error);
+                loadingDetailsP.innerText = "விவரங்களைப் பெறுவதில் பிழை: " + error.message;
+            }
+        }
+        
+        // --- Helper: பேக்கேஜ் விவரங்களை நிரப்பும் செயல்பாடு ---
+        function fillPackageDetails(pkg, data) {
+            if (!data || !data.price) {
+                // இந்த பேக்கேஜ் இல்லை என்றால் (e.g., Seller, Standard-ஐ நிரப்பவில்லை)
+                // அந்த Tab-ஐ Disable செய்
+                document.querySelector(`.tab-btn[data-pkg="${pkg}"]`).style.display = 'none';
+                return;
+            }
+            document.getElementById(`${pkg}-price`).innerText = data.price;
+            document.getElementById(`${pkg}-desc`).innerText = data.desc;
+            document.getElementById(`${pkg}-delivery`).innerText = `${data.delivery} நாட்கள் டெலிவரி`;
+            document.getElementById(`${pkg}-revisions`).innerText = `${data.revisions} திருத்தங்கள்`;
+            // Features
+            updateFeatureCheck(`${pkg}-feat-source`, data.feat_source);
+            updateFeatureCheck(`${pkg}-feat-hires`, data.feat_hires);
+            updateFeatureCheck(`${pkg}-feat-mockup`, data.feat_mockup);
+        }
+        function updateFeatureCheck(elementId, isIncluded) {
+            const el = document.getElementById(elementId);
+            if (isIncluded) {
+                el.className = 'included';
+            } else {
+                el.className = 'not-included';
+            }
+        }
+
+        // --- 3. லாகின் நிலையைச் சோதித்தல் ---
+        function checkAuthState() {
+            onAuthStateChanged(auth, (user) => {
+                if (user) {
+                    currentUser = user;
+                    loginPromptDiv.style.display = 'none';
+                    if (gigData.sellerId !== currentUser.uid) {
+                        updateOrderButton(); // ஆர்டர் பட்டனை அப்டேட் செய்
+                        contactBtn.style.display = 'block';
+                    }
+                } else {
+                    currentUser = null;
+                    orderBtn.style.display = 'none';
+                    contactBtn.style.display = 'none';
+                    loginPromptDiv.style.display = 'block';
+                }
+            });
+        }
+        
+        // --- 4. Tab மாறும்போது நடக்கும் செயல்பாடு ---
+        document.querySelectorAll('.tab-btn').forEach(button => {
+            button.addEventListener('click', () => {
+                // எல்லா Tab-களையும் Deactivate செய்
+                document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+                document.querySelectorAll('.pricing-package-content').forEach(content => content.classList.remove('active'));
+                
+                // கிளிக் செய்த Tab-ஐ Activate செய்
+                button.classList.add('active');
+                selectedPackage = button.getAttribute('data-pkg');
+                document.getElementById(`pkg-${selectedPackage}`).classList.add('active');
+                
+                // ஆர்டர் பட்டனையும் அப்டேட் செய்
+                updateOrderButton();
+            });
+        });
+
+        // --- 5. ஆர்டர் பட்டனை அப்டேட் செய்யும் செயல்பாடு ---
+        function updateOrderButton() {
+            if (currentUser && gigData.sellerId !== currentUser.uid) {
+                const price = gigData.pricing[selectedPackage].price;
+                orderBtn.innerText = `Continue ($${price})`;
+                orderBtn.style.display = 'block';
+            }
+        }
+
+        // --- 6. பட்டன் செயல்பாடுகள் ---
+        orderBtn.addEventListener('click', () => {
+            const price = gigData.pricing[selectedPackage].price;
+            // !! படி 25: அடுத்த பக்கத்திற்கு package & price-ஐ அனுப்ப வேண்டும் !!
+            window.location.href = `order-summary.html?gigId=${gigId}&pkg=${selectedPackage}&price=${price}`;
+        });
+        contactBtn.addEventListener('click', () => {
+            window.location.href = `chat.html?recipientId=${gigData.sellerId}`;
+        });
+
+        // --- 7. ரிவ்யூ-க்களைப் பெறும் செயல்பாடு (படி 15-ல் இருந்து) ---
+        async function fetchReviews(gigId, db) {
+            const loadingReviewsP = document.getElementById('loading-reviews');
+            const reviewsContainer = document.getElementById('reviews-container');
+            try {
+                const q = query(collection(db, "reviews"), where("gigId", "==", gigId), orderBy("createdAt", "desc"));
+                const querySnapshot = await getDocs(q);
+                if (querySnapshot.empty) {
+                    loadingReviewsP.innerText = "இந்த Gig-க்கு இன்னும் ரிவ்யூ இல்லை."; return;
+                }
+                loadingReviewsP.style.display = 'none';
+                reviewsContainer.innerHTML = ''; 
+                querySnapshot.forEach((doc) => {
+                    const reviewData = doc.data();
+                    let stars = '★'.repeat(reviewData.rating) + '☆'.repeat(5 - reviewData.rating);
+                    const reviewElement = document.createElement('div');
+                    reviewElement.className = 'review-item';
+                    reviewElement.innerHTML = `
+                        <div class="review-header">
+                            <span class="review-buyer">${reviewData.buyerEmail.split('@')[0]}...</span>
+                            <span class="review-rating">${stars}</span>
+                        </div>
+                        <p class="review-comment">${reviewData.comment}</p>
+                    `;
+                    reviewsContainer.appendChild(reviewElement);
+                });
+            } catch (error) {
+                console.error("Error fetching reviews:", error);
+                loadingReviewsP.innerText = "ரிவ்யூ-க்களைப் பெறுவதில் பிழை.";
+            }
+        }
+
+        // --- பக்கத்தை லோட் செய் ---
+        if (gigId) {
+            fetchGigDetails();
+        }
+
+    </script>
+</body>
+  </html>

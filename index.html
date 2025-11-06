@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillNex Pro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root { color-scheme: dark; }
+        body {
+            background-color: #121212; color: #e0e0e0;
+            display: flex; flex-direction: column;
+            height: 100vh; overflow: hidden;
+            padding-top: 60px; /* !! படி 40: Top Header-க்காக இடம் !! */
+            padding-bottom: 60px; /* !! படி 40: Bottom Nav-க்காக இடம் !! */
+        }
+        
+        /* !! படி 40: புதிய Top Header !! */
+        .top-header {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            background-color: #202020;
+            border-bottom: 1px solid #303030;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            z-index: 1000;
+            height: 60px;
+        }
+        .top-logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #fff;
+        }
+        .top-nav {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        .top-nav a {
+            color: #00A7F0; /* நீல நிற லிங்க் */
+            text-decoration: none;
+            font-weight: 500;
+            font-size: 0.9rem;
+        }
+        #logout-btn { color: #dc3545; }
+
+        /* Iframe (Content) */
+        #content-frame {
+            flex-grow: 1; border: none; width: 100%; height: 100%;
+        }
+        
+        /* Bottom Nav (மாற்றப்படவில்லை) */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background-color: #202020;
+            border-top: 1px solid #303030;
+            display: flex;
+            justify-content: space-around;
+            padding: 0.5rem 0;
+            z-index: 1000;
+            height: 60px;
+        }
+        .nav-btn {
+            background: none; border: none; color: #909090;
+            cursor: pointer; text-align: center; padding: 0.25rem;
+            flex-grow: 1;
+        }
+        .nav-btn.active { color: #1dbf73; } /* Fiverr Green */
+        .nav-btn svg { width: 28px; height: 28px; margin: 0 auto; }
+        .nav-btn span { font-size: 0.75rem; display: block; }
+        #nav-admin { display: none; color: #ffc107; } /* Admin Button */
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <header class="top-header">
+        <div class="top-logo">SkillNex</div>
+        <nav class="top-nav" id="top-nav-links">
+            <div id="logged-out-links">
+                <a href="login.html" target="content-frame">Login / Register</a>
+            </div>
+            <div id="logged-in-links" style="display: none;">
+                <a href="create-gig.html" target="content-frame">Create Gig</a>
+                <a id="logout-btn" href="#">Logout</a>
+            </div>
+        </nav>
+    </header>
+
+    <iframe id="content-frame" name="content-frame" src="home.html"></iframe>
+
+    <nav class="bottom-nav">
+        <button id="nav-home" class="nav-btn active">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" /></svg>
+            <span>Home</span>
+        </button>
+        <button id="nav-messages" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /></svg>
+            <span>Inbox</span>
+        </button>
+        <button id="nav-my-orders" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" /></svg>
+            <span>Orders</span>
+        </button>
+        <button id="nav-profile" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            <span>Profile</span>
+        </button>
+        <button id="nav-admin" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h3.75" /></svg>
+            <span>Admin</span>
+        </button>
+    </nav>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        
+        const ADMIN_UID = "Swj1WKIuxdPlIHM742kjnd8GBOo2";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+        
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // DOM Elements
+        const contentFrame = document.getElementById('content-frame');
+        const navButtons = document.querySelectorAll('.nav-btn');
+        const adminNavBtn = document.getElementById('nav-admin');
+        const loggedInLinks = document.getElementById('logged-in-links');
+        const loggedOutLinks = document.getElementById('logged-out-links');
+        const logoutBtn = document.getElementById('logout-btn');
+
+        // --- 1. பக்கங்களை லோட் செய்யும் செயல்பாடு ---
+        function loadPage(pageName) {
+            contentFrame.src = `${pageName}.html`;
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            // Admin-ஐத் தவிர, மற்ற பட்டன்களின் id "nav-" என்று தொடங்குகிறது
+            if (document.getElementById(`nav-${pageName}`)) {
+                document.getElementById(`nav-${pageName}`).classList.add('active');
+            }
+        }
+
+        // --- 2. பட்டன் Listeners ---
+        document.getElementById('nav-home').addEventListener('click', () => loadPage('home'));
+        document.getElementById('nav-messages').addEventListener('click', () => loadPage('messages'));
+        document.getElementById('nav-my-orders').addEventListener('click', () => loadPage('my-orders'));
+        document.getElementById('nav-profile').addEventListener('click', () => loadPage('profile'));
+        adminNavBtn.addEventListener('click', () => {
+            loadPage('admin'); // Admin பக்கத்தை லோட் செய்
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            adminNavBtn.classList.add('active'); // Admin பட்டனை Active ஆக்கு
+        });
+        
+        // --- 3. Logout Listener ---
+        logoutBtn.addEventListener('click', () => {
+            signOut(auth);
+            // Logout செய்ததும், login பக்கத்திற்கு அனுப்பு
+            loadPage('login');
+        });
+
+        // ===============================================
+        // !! படி 40: உண்மையான Admin Check !!
+        // ===============================================
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                // யூசர் லாகின் செய்துள்ளார்
+                loggedInLinks.style.display = 'flex';
+                loggedOutLinks.style.display = 'none';
+
+                if (user.uid === ADMIN_UID) {
+                    // அவர் Admin!
+                    adminNavBtn.style.display = 'block'; // Admin பட்டனைக் (Bottom) காட்டு
+                } else {
+                    // அவர் Admin இல்லை
+                    adminNavBtn.style.display = 'none';
+                }
+            } else {
+                // யூசர் லாகின் செய்யவில்லை
+                loggedInLinks.style.display = 'none';
+                loggedOutLinks.style.display = 'block';
+                adminNavBtn.style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>

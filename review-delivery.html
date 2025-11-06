@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 30: வேலையை ஏற்றுக்கொள் / நிராகரி</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .header { background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .container { max-width: 600px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; }
+        
+        #loading { text-align: center; font-size: 1.2rem; color: #777; }
+        #security-check-failed { display: none; color: #dc3545; }
+
+        .delivery-details { margin-bottom: 1.5rem; }
+        .delivery-message { background: #f4f4f4; padding: 1rem; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 1rem; }
+        .delivery-message blockquote { margin: 0; font-style: italic; }
+        .delivery-file-link {
+            display: inline-block; background-color: #007bff; color: white;
+            padding: 0.8rem 1.2rem; border-radius: 5px; text-decoration: none; font-weight: 600;
+        }
+        .delivery-file-link:hover { background-color: #0056b3; }
+        
+        /* !! படி 30: புதிய பட்டன் ஸ்டைல்கள் !! */
+        .action-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr; /* இரண்டு பட்டன்கள் */
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        .action-btn {
+            width: 100%; padding: 1rem; border: none;
+            border-radius: 4px; cursor: pointer; font-size: 1.1rem; font-weight: 700;
+        }
+        .accept-btn { background-color: #28a745; color: white; } /* பச்சை */
+        .accept-btn:hover { background-color: #218838; }
+        
+        .dispute-btn { background-color: #dc3545; color: white; } /* சிவப்பு */
+        .dispute-btn:hover { background-color: #c82333; }
+        .action-btn:disabled { background-color: #ccc; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex - டெலிவரியை மதிப்பாய்வு செய்</div>
+    </header>
+
+    <main class="container">
+        <div class="card">
+            
+            <p id="loading">டெலிவரி விவரங்களைப் பதிவேற்றுகிறது...</p>
+
+            <div id="security-check-failed">
+                <h2>தடை!</h2>
+                <p>இந்த டெலிவரியைப் பார்க்க உங்களுக்கு அனுமதி இல்லை. நீங்கள் இந்த ஆர்டரின் Buyer ஆக <a href="login.html">லாகின்</a> செய்திருக்க வேண்டும்.</p>
+            </div>
+
+            <div id="delivery-content" style="display: none;">
+                <h2>Seller-இன் டெலிவரி</h2>
+                
+                <div class="delivery-details">
+                    <h3>Seller-இன் செய்தி:</h3>
+                    <div class="delivery-message">
+                        <blockquote id-"delivery-message-text"></blockquote>
+                    </div>
+
+                    <h3>டெலிவரி செய்யப்பட்ட ஃபைல்:</h3>
+                    <p id="file-name-text"></p>
+                    <a id="delivery-file-link" href="#" target="_blank" rel="noopener noreferrer">
+                        ஃபைலைப் பதிவிறக்கு (Download File)
+                    </a>
+                </div>
+
+                <hr style="border: 0; border-top: 1px solid #eee; margin: 2rem 0;">
+
+                <div class="action-buttons">
+                    <button id="dispute-btn" class="action-btn dispute-btn">
+                        நிராகரி & பிரச்சினை (Reject & Dispute)
+                    </button>
+                    <button id="accept-btn" class="action-btn accept-btn">
+                        ஏற்றுக்கொள் & ரிவ்யூ கொடு
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, updateDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Firebase Config... (மாற்றப்படவில்லை)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loadingP = document.getElementById('loading');
+        const securityCheckFailedDiv = document.getElementById('security-check-failed');
+        const deliveryContentDiv = document.getElementById('delivery-content');
+        const messageText = document.getElementById('delivery-message-text');
+        const fileNameText = document.getElementById('file-name-text');
+        const fileLink = document.getElementById('delivery-file-link');
+        const acceptBtn = document.getElementById('accept-btn');
+        
+        // !! படி 30: புதிய பட்டன் !!
+        const disputeBtn = document.getElementById('dispute-btn');
+
+        let orderData = null;
+        let orderId = null;
+        let currentUser = null;
+
+        // --- 1. Order ID-ஐப் பெறுதல் மற்றும் லாகின் சோதித்தல் ---
+        async function initializePage() {
+            const urlParams = new URLSearchParams(window.location.search);
+            orderId = urlParams.get('orderId');
+
+            if (!orderId) { /* ... (பிழை கையாளுதல்) ... */ }
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    currentUser = user;
+                    await checkSecurityAndFetchOrder();
+                } else {
+                    /* ... (பிழை கையாளுதல்) ... */
+                }
+            });
+        }
+
+        // --- 2. பாதுகாப்புச் சோதனை மற்றும் ஆர்டர் விவரங்களைப் பெறுதல் ---
+        async function checkSecurityAndFetchOrder() {
+            try {
+                const docRef = doc(db, "orders", orderId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    orderData = docSnap.data();
+                    
+                    // Buyer தானா என்று சோதி, மற்றும் ஸ்டேட்டஸ் 'delivered' தானா என்று சோதி
+                    if (orderData.buyerId === currentUser.uid && orderData.status === 'delivered') {
+                        messageText.innerText = orderData.delivery.message;
+                        fileNameText.innerText = `ஃபைல் பெயர்: ${orderData.delivery.fileName}`;
+                        fileLink.href = orderData.delivery.fileURL;
+                        
+                        loadingP.style.display = 'none';
+                        deliveryContentDiv.style.display = 'block';
+                    } else {
+                        throw new Error("User is not the buyer or order status is not 'delivered'.");
+                    }
+                } else {
+                    throw new Error("Order not found.");
+                }
+            } catch (error) {
+                console.error("Security check failed:", error);
+                loadingP.style.display = 'none';
+                securityCheckFailedDiv.style.display = 'block';
+                securityCheckFailedDiv.querySelector('p').innerText = "இந்த ஆர்டரைப் பார்க்கவோ அல்லது ரிவ்யூ செய்யவோ உங்களுக்கு அனுமதி இல்லை.";
+            }
+        }
+
+        // --- 3. ஆர்டரை "Completed" என்று ஏற்கும் செயல்பாடு ---
+        async function handleAcceptDelivery() {
+            if (!orderId) return;
+            if (!confirm("நீங்கள் இந்த வேலையை ஏற்றுக்கொண்டு, ஆர்டரை முடிக்க விரும்புகிறீர்களா?")) { return; }
+
+            acceptBtn.disabled = true;
+            disputeBtn.disabled = true;
+            acceptBtn.innerText = "முடிக்கப்படுகிறது...";
+
+            try {
+                const orderRef = doc(db, "orders", orderId);
+                await updateDoc(orderRef, {
+                    status: "completed",
+                    completedAt: serverTimestamp()
+                });
+
+                alert("வெற்றி! ஆர்டர் முடிக்கப்பட்டது. இப்போது உங்கள் ரிவ்யூ-வை கொடுங்கள்.");
+                window.location.href = `leave-review.html?orderId=${orderId}`;
+
+            } catch (error) {
+                console.error("Error completing order:", error);
+                alert("ஆர்டரை முடிப்பதில் பிழை!");
+                acceptBtn.disabled = false;
+                disputeBtn.disabled = false;
+            }
+        }
+        
+        // ===============================================
+        // !! படி 30.A: புதிய செயல்பாடு !!
+        // ===============================================
+        async function handleDisputeOrder() {
+            if (!orderId) return;
+            
+            const reason = prompt("நீங்கள் ஏன் இந்த டெலிவரியை நிராகரிக்கிறீர்கள்? (Please provide a reason for the dispute)");
+            
+            if (reason === null || reason.trim() === "") {
+                alert("Dispute செய்வதற்கு ஒரு காரணம் (Reason) அவசியம்.");
+                return; // யூசர் "Cancel" அல்லது காலி மெசேஜ்
+            }
+
+            acceptBtn.disabled = true;
+            disputeBtn.disabled = true;
+            disputeBtn.innerText = "Disputing...";
+
+            try {
+                const orderRef = doc(db, "orders", orderId);
+                // !! ஸ்டேட்டஸ் "disputed" ஆக மாறியது !!
+                await updateDoc(orderRef, {
+                    status: "disputed",
+                    disputeReason: reason, // காரணத்தைச் சேமி
+                    disputedAt: serverTimestamp()
+                });
+
+                alert("வெற்றி! உங்கள் பிரச்சினை (Dispute) அட்மினுக்கு அனுப்பப்பட்டது. அவர் உங்களைத் தொடர்புகொள்வார்.");
+                window.location.href = 'my-orders.html'; // "My Orders" பக்கத்திற்குத் திரும்பு
+
+            } catch (error) {
+                console.error("Error disputing order:", error);
+                alert("ஆர்டரை Dispute செய்வதில் பிழை!");
+                acceptBtn.disabled = false;
+                disputeBtn.disabled = false;
+                disputeBtn.innerText = "Reject & Dispute";
+            }
+        }
+
+        // --- Event Listeners ---
+        acceptBtn.addEventListener('click', handleAcceptDelivery);
+        disputeBtn.addEventListener('click', handleDisputeOrder); // !! புதிய Listener !!
+        
+        // பக்கத்தை லோட் செய்
+        initializePage();
+
+    </script>
+</body>
+  </html>

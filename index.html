@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillNex - முகப்பு (Final)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        
+        .header {
+            background: #fff; padding: 1rem 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .logo { font-size: 1.5rem; font-weight: 700; color: #333; }
+        .nav { display: flex; align-items: center; }
+        .nav a { color: #007bff; text-decoration: none; margin-left: 1.5rem; font-weight: 500; }
+        
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        h1 { color: #333; }
+        
+        /* Filter Bar Style */
+        .filter-container {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        #search-input {
+            flex-grow: 1; padding: 1rem; font-size: 1.2rem;
+            border: 1px solid #ddd; border-radius: 8px; box-sizing: border-box;
+        }
+        #category-filter {
+            padding: 1rem; font-size: 1.2rem; border: 1px solid #ddd;
+            border-radius: 8px; background-color: #fff;
+        }
+        
+        /* Gig கார்டு ஸ்டைல் */
+        #gigs-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+        .gig-card-link {
+            text-decoration: none; color: inherit; display: block;
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            overflow: hidden; transition: transform 0.2s;
+        }
+        .gig-card-link img { width: 100%; height: 180px; object-fit: cover; background-color: #eee; }
+        .gig-content { padding: 1rem; }
+        .gig-category {
+            font-size: 0.8rem; font-weight: 600; color: #007bff;
+            background-color: #e6f2ff; padding: 0.25rem 0.5rem;
+            border-radius: 4px; display: inline-block; margin-bottom: 0.5rem;
+        }
+        .gig-title { font-size: 1.2rem; font-weight: 600; color: #333; margin: 0; }
+        
+        .gig-footer {
+            padding: 1rem; border-top: 1px solid #f0f0f0;
+            text-align: right; /* விலையை வலது பக்கம் தள்ளு */
+        }
+        .gig-price { font-size: 1.25rem; font-weight: 700; color: #28a745; }
+        .gig-price span { font-size: 0.9rem; font-weight: 400; color: #777; }
+        
+        #loading, #no-results { text-align: center; font-size: 1.2rem; color: #777; margin-top: 3rem; }
+    </style>
+</head>
+<body>
+
+    <header class="header">
+        <div class="logo">SkillNex</div>
+        <nav class="nav">
+            <a href="index.html"><b>முகப்பு (Home)</b></a>
+            <span id="auth-status-nav">
+                <a href="login.html">Login / Register</a>
+            </span>
+            <a id="create-gig-link" href="create-gig.html" style="display: none;">Gig-ஐ உருவாக்கு</a>
+            <a id="my-orders-link" href="my-orders.html" style="display: none;">எனது ஆர்டர்கள்</a>
+            <a id="messages-link" href="messages.html" style="display: none;">மெசேஜ்கள்</a>
+            <a id="profile-link" href="profile.html" style="display: none;">சுயவிவரம்</a>
+            <a id="logout-btn" style="display: none;">வெளியேறு (Logout)</a>
+        </nav>
+    </header>
+
+    <main class="container">
+        
+        <div class="filter-container">
+            <input type="search" id="search-input" placeholder="என்ன சேவை தேடுகிறீர்கள்? (e.g., logo)...">
+            <select id="category-filter">
+                <option value="all">All Categories</option>
+                <option value="graphics_design">Graphics & Design</option>
+                <option value="digital_marketing">Digital Marketing</option>
+                <option value="writing_translation">Writing & Translation</option>
+                <option value="web_development">Web Development</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+
+        <h1>கிடைக்கும் சேவைகள் (Available Gigs)</h1>
+        
+        <div id="gigs-container">
+            </div>
+
+        <p id="loading">Approve செய்யப்பட்ட சேவைகளைப் பதிவேற்றுகிறது...</p>
+        <p id="no-results" style="display: none;">நீங்கள் தேடியதற்கு Gigs எதுவும் இல்லை.</p>
+
+    </main>
+
+    <script type="module">
+        // Import the functions you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, collection, getDocs, query, where, orderBy } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // Firebase Config...
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- DOM Elements ---
+        const authStatusNav = document.getElementById('auth-status-nav');
+        const createGigLink = document.getElementById('create-gig-link');
+        const myOrdersLink = document.getElementById('my-orders-link');
+        const messagesLink = document.getElementById('messages-link');
+        const profileLink = document.getElementById('profile-link');
+        const logoutBtn = document.getElementById('logout-btn');
+        const gigsContainer = document.getElementById('gigs-container');
+        const loadingP = document.getElementById('loading');
+        const searchInput = document.getElementById('search-input');
+        const categoryFilter = document.getElementById('category-filter');
+        const noResultsP = document.getElementById('no-results');
+        
+        let allGigs = []; // எல்லா Approved Gig-களையும் ஒருமுறை சேமிக்க
+
+        // --- யூசர் லாகின் சோதித்தல் (ஹெடருக்காக) ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                authStatusNav.innerHTML = `Signed in: ${user.email.substring(0, 10)}...`;
+                createGigLink.style.display = 'inline-block';
+                myOrdersLink.style.display = 'inline-block';
+                messagesLink.style.display = 'inline-block';
+                profileLink.style.display = 'inline-block';
+                logoutBtn.style.display = 'inline-block';
+            } else {
+                authStatusNav.innerHTML = `<a href="login.html">Login / Register</a>`;
+                createGigLink.style.display = 'none';
+                myOrdersLink.style.display = 'none';
+                messagesLink.style.display = 'none';
+                profileLink.style.display = 'none';
+                logoutBtn.style.display = 'none';
+            }
+        });
+        logoutBtn.addEventListener('click', () => signOut(auth));
+
+        // --- 1. Firestore-ல் இருந்து *Approve ஆன* Gigs-களை மட்டும் பெறுதல் ---
+        async function fetchAllGigs() {
+            try {
+                const gigsQuery = query(collection(db, "gigs"), 
+                                        where("isApproved", "==", true),
+                                        orderBy("createdAt", "desc"));
+                
+                const querySnapshot = await getDocs(gigsQuery);
+                
+                loadingP.style.display = 'none';
+                
+                if (querySnapshot.empty) {
+                    loadingP.innerText = "Approve செய்யப்பட்ட Gigs எதுவும் இல்லை.";
+                    loadingP.style.display = 'block';
+                    return;
+                }
+                
+                querySnapshot.forEach((doc) => {
+                    allGigs.push({
+                        id: doc.id,
+                        ...doc.data()
+                    });
+                });
+                
+                renderGigs(allGigs); // முதல் முறை எல்லாவற்றையும் காட்டு
+
+            } catch (error) {
+                console.error("Error fetching gigs: ", error);
+                loadingP.innerText = "Gigs-களைப் பெறுவதில் பிழை ஏற்பட்டது.";
+            }
+        }
+
+        // --- 2. Gigs-களை HTML-ல் காட்டும் செயல்பாடு (அப்டேட்) ---
+        function renderGigs(gigsToRender) {
+            gigsContainer.innerHTML = '';
+            
+            if (gigsToRender.length === 0) {
+                noResultsP.style.display = 'block';
+            } else {
+                noResultsP.style.display = 'none';
+            }
+
+            gigsToRender.forEach((gigData) => {
+                // ===============================================
+                // !! படி 26: மிக முக்கியமான அப்டேட் !!
+                // ===============================================
+                // பழைய `gigData.price`-க்குப் பதிலாக, `basic` விலையைப் படி
+                let startingPrice = '--';
+                if (gigData.pricing && gigData.pricing.basic && gigData.pricing.basic.price) {
+                    startingPrice = gigData.pricing.basic.price;
+                }
+                // ===============================================
+
+                const gigCardLink = document.createElement('a');
+                gigCardLink.className = 'gig-card-link';
+                gigCardLink.href = `gig-details.html?id=${gigData.id}`; 
+                
+                let categoryText = gigData.category.replace('_', ' ');
+                
+                gigCardLink.innerHTML = `
+                    <img src="https://via.placeholder.com/300x180?text=${encodeURIComponent(gigData.title)}" alt="Gig Image">
+                    <div class="gig-content">
+                        <span class="gig-category">${categoryText}</span>
+                        <h3 class="gig-title">${gigData.title}</h3>
+                    </div>
+                    <div class="gig-footer">
+                        <span class="gig-price"><span>Starting at</span> $${startingPrice}</span>
+                    </div>
+                `;
+                gigsContainer.appendChild(gigCardLink);
+            });
+        }
+        
+        // --- 3. Filters-க்கான பொதுவான செயல்பாடு ---
+        function filterAndRenderGigs() {
+            const searchText = searchInput.value.toLowerCase();
+            const category = categoryFilter.value;
+
+            const filteredGigs = allGigs.filter((gig) => {
+                const categoryMatch = (category === 'all') || (gig.category === category);
+                const textMatch = gig.title.toLowerCase().includes(searchText) || 
+                                  (gig.description && gig.description.toLowerCase().includes(searchText));
+                
+                return categoryMatch && textMatch;
+            });
+            
+            renderGigs(filteredGigs);
+        }
+
+        // --- 4. Event Listeners ---
+        searchInput.addEventListener('input', filterAndRenderGigs);
+        categoryFilter.addEventListener('change', filterAndRenderGigs);
+
+        // --- பக்கம் லோட் ஆனதும், Gigs-களைப் பெற இந்தச் செயல்பாட்டை இயக்கு ---
+        fetchAllGigs();
+
+    </script>
+</body>
+  </html>

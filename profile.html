@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>படி 37: சுயவிவரம் (Admin Link)</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
+        .container { max-width: 700px; margin: 2rem auto; padding: 0 1rem; }
+        .card { background: #fff; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h2 { margin-top: 0; }
+        #login-prompt { text-align: center; color: #dc3545; }
+        
+        /* !! படி 37: புதிய Admin பட்டன் ஸ்டைல் !! */
+        #admin-panel-link {
+            display: none; /* Admin-க்கு மட்டும் காட்டு */
+            background-color: #ffc107; /* மஞ்சள் */
+            color: #333;
+            text-align: center;
+            padding: 1rem;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            text-decoration: none;
+            margin-bottom: 2rem;
+        }
+        
+        .profile-pic-container { text-align: center; margin-bottom: 2rem; }
+        #profile-pic-preview { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; background-color: #eee; border: 4px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.1); cursor: pointer; }
+        #profile-pic-input { display: none; }
+        #profile-pic-label { display: inline-block; margin-top: 0.5rem; color: #007bff; cursor: pointer; text-decoration: underline; }
+        #upload-status { font-size: 0.9rem; color: #28a745; }
+        
+        .form-group { margin-bottom: 1.5rem; }
+        label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        input[type="text"], textarea { width: 100%; padding: 0.8rem; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        textarea { min-height: 100px; }
+        .payout-note { font-size: 0.9rem; color: #555; background-color: #f4f4f4; padding: 0.75rem; border-radius: 4px; }
+        button { width: 100%; padding: 1rem; background-color: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 1.2rem; font-weight: 700; margin-top: 1rem; }
+        button:disabled { background-color: #ccc; }
+        #loading { text-align: center; }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <div class="card">
+            
+            <div id="login-prompt" style="display: none;">
+                <h2>தடை!</h2>
+                <p>உங்கள் சுயவிவரத்தைப் பார்க்க, நீங்கள் முதலில் <a href="login.html" target="_top">லாகின்</a> செய்திருக்க வேண்டும்.</p>
+            </div>
+
+            <div id="loading" style="display: none;">
+                <p>சுயவிவரத்தைப் பதிவேற்றுகிறது...</p>
+            </div>
+            
+            <a id="admin-panel-link" href="admin.html" target="_top">
+                👑 அட்மின் பேனலுக்குச் செல் 👑
+            </a>
+
+            <form id="profile-form" style="display: none;">
+                <div class="profile-pic-container">
+                    <label for="profile-pic-input">
+                        <img id="profile-pic-preview" src="https://via.placeholder.com/120" alt="Profile Preview">
+                    </label>
+                    <input type="file" id="profile-pic-input" accept="image/*">
+                    <label for="profile-pic-input" id="profile-pic-label">சுயவிவரப் படத்தைத் மாற்று</label>
+                    <p id="upload-status"></p>
+                </div>
+                
+                <h2>எனது சுயவிவரம்</h2>
+                <p>உங்கள் ஈமெயில்: <strong id="user-email"></strong></p>
+
+                <div class="form-group"><label for="display-name">காட்டும் பெயர்</label><input type="text" id="display-name"></div>
+                <div class="form-group"><label for="user-skills">திறமைகள்</label><textarea id="user-skills"></textarea></div>
+                <hr>
+                <h2>பணம் பெறும் விவரங்கள்</h2>
+                <div class="form-group"><label for="payout-details">வங்கி விவரங்கள்</label><textarea id="payout-details"></textarea></div>
+                
+                <button id="save-profile-btn" type="submit">சுயவிவரத்தைச் சேமி</button>
+            </form>
+
+        </div>
+    </main>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // ===============================================
+        // !! உங்கள் உண்மையான Admin UID !!
+        // ===============================================
+        const ADMIN_UID = "Swj1WKIuxdPlIHM742kjnd8GBOo2";
+        // ===============================================
+
+        // Cloudinary Config...
+        const CLOUDINARY_CLOUD_NAME = "dfafurpn";
+        // !! Upload Preset -ஐ சரிபார்க்கவும்!!
+        const CLOUDINARY_UPLOAD_PRESET = "skillnexpro"; // நாம் "skillnexpro" என்று புதிதாக உருவாக்கினோம்
+        const CLOUDINARY_UPLOAD_URL = `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`;
+        
+        // Firebase Config... (மாற்றப்படவில்லை)
+        const firebaseConfig = {
+            apiKey: "AIzaSyDrcT2_lGYtEtnn3LKvp3M7Ou9rTG95XG8",
+            authDomain: "skillnex.firebaseapp.com",
+            projectId: "skillnex",
+            storageBucket: "skillnex.firebasestorage.app",
+            messagingSenderId: "981326730889",
+            appId: "1:981326730889:web:a063a71ec8b8d2169d9858",
+            measurementId: "G-HN4CVQF3GJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // DOM Elements
+        const loginPromptDiv = document.getElementById('login-prompt');
+        const loadingDiv = document.getElementById('loading');
+        const profileForm = document.getElementById('profile-form');
+        const userEmailEl = document.getElementById('user-email');
+        const picPreview = document.getElementById('profile-pic-preview');
+        const picInput = document.getElementById('profile-pic-input');
+        const uploadStatus = document.getElementById('upload-status');
+        const saveBtn = document.getElementById('save-profile-btn');
+        const displayNameInput = document.getElementById('display-name');
+        const skillsInput = document.getElementById('user-skills');
+        const payoutInput = document.getElementById('payout-details');
+        
+        // !! படி 37: புதிய Admin Link !!
+        const adminPanelLink = document.getElementById('admin-panel-link');
+        
+        let currentUser = null;
+        let newPhotoURL = null;
+
+        // --- 1. யூசர் லாகின் சோதித்தல் ---
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loginPromptDiv.style.display = 'none';
+                loadingDiv.style.display = 'block';
+                profileForm.style.display = 'none';
+                userEmailEl.innerText = currentUser.email;
+                
+                // !! படி 37: Admin-ஆ என்று சோதி !!
+                if (currentUser.uid === ADMIN_UID) {
+                    adminPanelLink.style.display = 'block'; // Admin பட்டனைக் காட்டு!
+                } else {
+                    adminPanelLink.style.display = 'none'; // Admin இல்லை, மறை
+                }
+                
+                loadUserProfile();
+            } else {
+                loginPromptDiv.style.display = 'block';
+                loadingDiv.style.display = 'none';
+                profileForm.style.display = 'none';
+            }
+        });
+
+        // --- 2. சுயவிவரத்தைப் பெறுதல் (மாற்றப்படவில்லை) ---
+        async function loadUserProfile() {
+            if (!currentUser) return;
+            try {
+                const docRef = doc(db, "users", currentUser.uid);
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    const userData = docSnap.data();
+                    displayNameInput.value = userData.displayName || '';
+                    skillsInput.value = userData.skills || '';
+                    payoutInput.value = userData.payoutDetails || '';
+                    if (userData.photoURL) {
+                        picPreview.src = userData.photoURL;
+                        newPhotoURL = userData.photoURL;
+                    }
+                }
+            } catch (error) { console.error("Error loading profile:", error);
+            } finally {
+                loadingDiv.style.display = 'none';
+                profileForm.style.display = 'block';
+            }
+        }
+
+        // --- 3. பட அப்லோட் (மாற்றப்படவில்லை) ---
+        picInput.addEventListener('change', async () => {
+            const file = picInput.files[0];
+            if (!file) return;
+            uploadStatus.innerText = "படம் பதிவேற்றுகிறது...";
+            saveBtn.disabled = true;
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
+            try {
+                const response = await fetch(CLOUDINARY_UPLOAD_URL, { method: 'POST', body: formData });
+                if (!response.ok) throw new Error('Cloudinary upload failed');
+                const data = await response.json();
+                newPhotoURL = data.secure_url;
+                picPreview.src = newPhotoURL;
+                uploadStatus.innerText = "படம் பதிவேற்றியது! சேமிக்கலாம்.";
+            } catch (error) {
+                console.error("Error uploading image:", error);
+                uploadStatus.innerText = "பட அப்லோட் பிழை!";
+            } finally {
+                saveBtn.disabled = false;
+            }
+        });
+        
+        // --- 4. சுயவிவரத்தைச் சேமித்தல் (மாற்றப்படவில்லை) ---
+        profileForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!currentUser) return;
+            const profileData = {
+                email: currentUser.email,
+                displayName: displayNameInput.value,
+                skills: skillsInput.value,
+                payoutDetails: payoutInput.value,
+                photoURL: newPhotoURL
+            };
+            saveBtn.disabled = true;
+            saveBtn.innerText = "சேமிக்கிறது...";
+            try {
+                const docRef = doc(db, "users", currentUser.uid);
+                await setDoc(docRef, profileData, { merge: true });
+                alert("வெற்றி! உங்கள் சுயவிவரம் சேமிக்கப்பட்டது.");
+            } catch (error) {
+                console.error("Error saving profile:", error);
+                alert("சுயவிவரத்தைச் சேமிப்பதில் பிழை!");
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.innerText = "சுயவிவரத்தைச் சேமி";
+            }
+        });
+        
+    </script>
+</body>
+  </html>

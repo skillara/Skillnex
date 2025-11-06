@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en" class="dark"> <!-- !! Dark Mode !! -->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SkillNex Pro</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Tailwind Dark Mode */
+        :root { color-scheme: dark; }
+        
+        /* Fiverr App போன்ற தோற்றம் */
+        body {
+            /* நாம் உருவாக்கிய பக்கங்களில் உள்ள 'f0f2f5' (light grey) background-ஐ இது மறைக்கும் */
+            background-color: #121212; /* Fiverr's Dark Grey */
+            color: #e0e0e0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden; /* Scroll-ஐ iframe கையாளும் */
+        }
+        
+        /* Main Content Area (Iframe) */
+        #content-frame {
+            flex-grow: 1; /* மீதமுள்ள எல்லா இடத்தையும் எடு */
+            border: none;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* !! Fiverr Bottom Navigation Bar !! */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #202020; /* Darker grey */
+            border-top: 1px solid #303030;
+            display: flex;
+            justify-content: space-around;
+            padding: 0.5rem 0;
+            z-index: 1000;
+        }
+        .nav-btn {
+            background: none;
+            border: none;
+            color: #909090; /* Grey text */
+            cursor: pointer;
+            text-align: center;
+            padding: 0.25rem;
+            flex-grow: 1;
+        }
+        .nav-btn.active {
+            color: #1dbf73; /* Fiverr Green */
+        }
+        .nav-btn svg {
+            width: 28px;
+            height: 28px;
+            margin: 0 auto;
+        }
+        .nav-btn span {
+            font-size: 0.75rem;
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <!-- 
+      !! இதுதான் "Shell" (கூடு) !!
+      மற்ற எல்லா பக்கங்களும் (index.html, messages.html) இதற்குள் லோட் ஆகும்.
+    -->
+    <iframe id="content-frame" src="index.html"></iframe>
+
+    <!-- !! Fiverr Bottom Navigation Bar !! -->
+    <nav class="bottom-nav">
+        <!-- Home Button -->
+        <button id="nav-home" class="nav-btn active">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 12l8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+            </svg>
+            <span>Home</span>
+        </button>
+        
+        <!-- Messages Button -->
+        <button id="nav-messages" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+            </svg>
+            <span>Inbox</span>
+        </button>
+        
+        <!-- Orders Button -->
+        <button id="nav-orders" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 12h16.5m-16.5 3.75h16.5M3.75 19.5h16.5M5.625 4.5h12.75a1.875 1.875 0 010 3.75H5.625a1.875 1.875 0 010-3.75z" />
+            </svg>
+            <span>Orders</span>
+        </button>
+        
+        <!-- Profile Button -->
+        <button id="nav-profile" class="nav-btn">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M17.982 18.725A7.488 7.488 0 0012 15.75a7.488 7.488 0 00-5.982 2.975m11.963 0a9 9 0 10-11.963 0m11.963 0A8.966 8.966 0 0112 21a8.966 8.966 0 01-5.982-2.275M15 9.75a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span>Profile</span>
+        </button>
+    </nav>
+    
+    <script>
+        const contentFrame = document.getElementById('content-frame');
+        const navButtons = document.querySelectorAll('.nav-btn');
+
+        // பக்கங்களை லோட் செய்யும் செயல்பாடு
+        function loadPage(pageName) {
+            contentFrame.src = `${pageName}.html`;
+            // எல்லா பட்டன்களின் 'active' ஸ்டைலையும் நீக்கு
+            navButtons.forEach(btn => btn.classList.remove('active'));
+            // கிளிக் செய்த பட்டனுக்கு 'active' ஸ்டைல் கொடு
+            document.getElementById(`nav-${pageName}`).classList.add('active');
+        }
+
+        // பட்டன் Listeners
+        document.getElementById('nav-home').addEventListener('click', () => loadPage('index'));
+        document.getElementById('nav-messages').addEventListener('click', () => loadPage('messages'));
+        document.getElementById('nav-orders').addEventListener('click', () => loadPage('my-orders'));
+        document.getElementById('nav-profile').addEventListener('click', () => loadPage('profile'));
+        
+    </script>
+</body>
+</html>

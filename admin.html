@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>படி 41: அட்மின் (Full)</title>
+    <title>படி 41: Admin (Full)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f0f2f5; margin: 0; padding: 0; }
         .header { background: #333; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; }
@@ -51,34 +51,34 @@
 <body>
 
     <header class="header">
-        <div class="logo">SkillNex - அட்மின்</div>
+        <div class="logo">SkillNex - Admin</div>
         <nav class="nav">
-             <a href="admin.html"><b>ஆர்டர்கள்</b></a>
-             <a href="admin-users.html" target="content-frame">யூசர்கள்</a>
-             <a href="home.html" target="content-frame">முகப்பு (View Site)</a>
+             <a href="admin.html"><b>Orders</b></a>
+             <a href="admin-users.html" target="content-frame">user's</a>
+             <a href="home.html" target="content-frame">Home (View Site)</a>
         </nav>
     </header>
 
     <main class="container">
         
         <div id="access-denied" style="display: none;">
-             <h2>தடை!</h2>
-             <p>சரியான அட்மின் கணக்கு மூலம் <a href="login.html" target="_top">லாகின் செய்யவும்</a>.</p>
+             <h2>Ban!</h2>
+             <p>Through a valid admin account <a href="login.html" target="_top">Log in</a>.</p>
         </div>
         
         <div id="admin-content" style="display: none;">
             
             <section id="dashboard-section">
                 <div class="dashboard-card" id="total-revenue">
-                    <h3>மொத்த வியாபாரம்</h3>
+                    <h3>Wholesale trade</h3>
                     <p class="value" id="db-total-revenue">$...</p>
                 </div>
                 <div class="dashboard-card" id="total-income">
-                    <h3>உங்கள் வருமானம் (20%)</h3>
+                    <h3>Your income (20%)</h3>
                     <p class="value" id="db-total-income">$...</p>
                 </div>
                 <div class="dashboard-card" id="pending-payouts">
-                    <h3>Seller-களுக்கு பாக்கி</h3>
+                    <h3>Sellers balance/owe </h3>
                     <p class="value" id="db-pending-payouts">$...</p>
                 </div>
             </section>
@@ -86,9 +86,9 @@
             <hr style="border: 0; border-top: 2px solid #ccc; margin: 3rem 0;">
 
             <section id="dispute-section">
-                <h2>🔥 பிரச்சினையில் உள்ளவை (Disputed)</h2>
+                <h2>🔥 Those in trouble (Disputed)</h2>
                 <div id="disputed-orders-container">
-                    <p id="loading-disputed">பிரச்சினைகளைப் பதிவேற்றுகிறது...</p>
+                    <p id="loading-disputed">Uploading issues...</p>
                 </div>
             </section>
             
@@ -138,7 +138,7 @@
         // ===============================================
         // !! உங்கள் புதிய, சரியான Admin UID !!
         // ===============================================
-        const ADMIN_UID = "Swj1WKIuxdPlIHM742kjnd8GBOo2";
+        const ADMIN_UID = "ye0Y5dLDwIXiU8YKWiCyQMQzOr82";
         // ===============================================
 
         // Firebase Config... (மாற்றப்படவில்லை)
